@@ -1,0 +1,21 @@
+{
+  "issue": 4,
+  "dependencies": [
+    {
+      "issue": 3,
+      "kind": "overlaps",
+      "reason": "Both add new POJOs under src/main/java/com/neversoft/ in different packages, so no file clash. #3 edits the root package.json test script, which names the Vehicle files explicitly. #4 does not touch it (AC-7), so its classes are not compiled by npm test. If #4 later adds tests or extends that script, it would conflict with #3's edit and should merge after #3.",
+      "shared": ["package.json", "src/main/java/com/neversoft/"],
+      "confidence": "low"
+    },
+    {
+      "issue": 5,
+      "kind": "overlaps",
+      "reason": "#5 is a standalone React app in sales-orders-ui/ and shares no files with #4. Both model the same sales-order concept (order, lines, customer, quantity, unit price). #5 is client-side only and does not consume the Java classes, so neither blocks the other. #5's open question about a future backend API could later link the two.",
+      "shared": ["Sales order domain concept (no shared files)"],
+      "confidence": "low"
+    }
+  ],
+  "conflicts": [],
+  "recommended_order": [3, 4, 5]
+}
