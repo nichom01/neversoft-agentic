@@ -10,6 +10,15 @@
       "cost": 0.39453,
       "taskId": "adc0e581774230377f1041704ce2781d",
       "revision": false
+    },
+    {
+      "stage": "deps",
+      "runId": "8ce73456",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-23T22:25:11.120Z",
+      "cost": 0.295892,
+      "taskId": "fbcd77c150ca4369789942daf1d5d340",
+      "revision": false
     }
   ]
 }
