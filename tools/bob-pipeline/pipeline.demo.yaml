@@ -1,0 +1,170 @@
+# DEMO pipeline: same stages as pipeline.yaml, but every gate is automatic,
+# so an issue runs from start to finish with no approvals.
+# Run with: npm run demo     (generated from pipeline.yaml; don't edit by hand)
+#
+# Bob pipeline definition. This file IS the process.
+#
+# - Each stage runs one Bob custom mode (see /.bob/custom_modes.yaml).
+# - Labels are derived from stage ids:  bob:<id>-review, bob:<id>-approved
+#   plus bob:start, bob:working, bob:revise, bob:failed, bob:done, bob:parked.
+# - Paths for prompts and schemas are relative to this file.
+# - Run `npm run validate` after editing.
+#
+# Bump `version` when you change the process. Issues already in flight record
+# the version they started with (in state.json on their branch).
+
+version: 2
+
+repo:
+  path: ../..            # the repo root, relative to this file
+  base_branch: main
+  remote: origin
+  # owner / name are read from the remote URL; set them to override.
+
+branch: bob/issue-{{issue}}
+output_dir: docs/bob/{{issue}}
+worktrees_dir: ~/.bob-pipeline/worktrees
+
+poller:
+  interval_seconds: 15
+  concurrency: 2
+  claim_settle_seconds: 3
+
+# How Bob Shell is invoked. Placeholders: {{mode}} {{max_cost}} {{max_turns}}
+# {{workspace}} {{task_id}}. Adjust if your Bob Shell version uses other
+# flags (check `bob run --help`). BOB_API_KEY must be in the environment.
+bob:
+  bin: bob
+  args:
+    - run
+    - --accept-license
+    - --trust
+    - --format
+    - stream-json
+    - --mode
+    - "{{mode}}"
+    - --max-cost
+    - "{{max_cost}}"
+    - --max-turns
+    - "{{max_turns}}"
+    - --workspace
+    - "{{workspace}}"
+  resume_args: [--resume, "{{task_id}}"]
+  prompt_via: stdin
+
+defaults:
+  max_cost: 2
+  max_turns: 40
+
+stages:
+  - id: hlp
+    name: High-level plan
+    description: Understand the issue and propose an approach, components and risks.
+    mode: hlp-planner
+    prompt: prompts/hlp.md
+    inputs: [issue, feedback]
+    outputs:
+      - file: hlp.md
+      - file: hlp.json
+        schema: schemas/hlp.schema.json
+    comment: hlp.md
+    gate: auto
+    view: plan
+
+  # Phase 2: compare this plan with every other open issue's plan.
+  - id: deps
+    name: Dependency check
+    description: Find ordering dependencies, overlapping work and conflicts with other open issues.
+    mode: dep-checker
+    prompt: prompts/deps.md
+    inputs: [issue, hlp, all_open:hlp, feedback]
+    outputs:
+      - file: deps.md
+      - file: deps.json
+        schema: schemas/deps.schema.json
+    comment: deps.md
+    gate: auto
+    view: dependency-graph
+    # When a reviewer approves, record high-confidence "blocked by" links as
+    # GitHub issue dependencies. Others can be accepted one by one in the UI.
+    post:
+      - action: add_issue_dependencies
+        with:
+          file: deps.json
+          min_confidence: high
+
+  - id: llp
+    name: Low-level plan
+    description: File-by-file design, interfaces, data changes and test approach.
+    mode: llp-planner
+    prompt: prompts/llp.md
+    inputs: [issue, hlp, deps, feedback]
+    outputs:
+      - file: llp.md
+      - file: llp.json
+        schema: schemas/llp.schema.json
+    comment: llp.md
+    gate: auto
+    view: plan
+
+  # Phase 3: top-down test plan (smoke -> BDD -> component -> unit), each test
+  # traced to an acceptance criterion or risk, reviewed before any code is written.
+  - id: tests
+    name: Test plan
+    description: Decide which tests to write at each layer, and why, before implementation.
+    mode: test-planner
+    prompt: prompts/tests.md
+    inputs: [issue, hlp, llp, feedback]
+    outputs:
+      - file: tests.md
+      - file: tests.json
+        schema: schemas/tests.schema.json
+    comment: tests.md
+    post:
+      # Logs acceptance criteria and risks with no test. Use mode: fail to block.
+      - action: check_traceability
+        with:
+          plan: hlp.json
+          tests: tests.json
+          mode: warn
+    gate: auto
+    view: test-pyramid
+
+
+  - id: implement
+    name: Implement
+    description: Make the code changes in the low-level plan and get tests passing.
+    mode: implementer
+    prompt: prompts/implement.md
+    inputs: [issue, hlp, llp, tests, feedback]
+    # Don't start coding while a "blocked by" issue is still open on GitHub.
+    wait_for_blockers: false
+    commit: all
+    max_cost: 8
+    max_turns: 120
+    retries: 0
+    post:
+      # Compile check for this Java repo. Replace with your real test command
+      # (e.g. mvn -q test or ./gradlew test) once the project has a build.
+      - run: 'if command -v javac >/dev/null && find . -name "*.java" -not -path "./tools/*" | grep -q .; then mkdir -p .bob-pipeline/classes && javac -d .bob-pipeline/classes $(find . -name "*.java" -not -path "./tools/*"); else echo "No Java compiler or no Java sources; skipping compile check"; fi'
+        on_fail: retry_with_output
+        timeout_seconds: 1200
+      - action: open_draft_pr
+    gate: auto
+    view: diff
+
+  - id: changes
+    name: What changed
+    description: Explain what changed and why, for reviewers and release notes.
+    mode: change-writer
+    prompt: prompts/changes.md
+    inputs: [issue, hlp, llp, tests, diff, feedback]
+    outputs:
+      - file: changes.md
+    comment: changes.md
+    post:
+      - action: update_pr_body
+        with:
+          file: changes.md
+    gate: auto
+    view: plan

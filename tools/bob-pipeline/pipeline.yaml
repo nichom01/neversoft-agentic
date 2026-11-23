@@ -140,8 +140,9 @@ stages:
     max_turns: 120
     retries: 0
     post:
-      # Change this to your project's test command.
-      - run: npm test --if-present
+      # Compile check for this Java repo. Replace with your real test command
+      # (e.g. mvn -q test or ./gradlew test) once the project has a build.
+      - run: 'if command -v javac >/dev/null && find . -name "*.java" -not -path "./tools/*" | grep -q .; then mkdir -p .bob-pipeline/classes && javac -d .bob-pipeline/classes $(find . -name "*.java" -not -path "./tools/*"); else echo "No Java compiler or no Java sources; skipping compile check"; fi'
         on_fail: retry_with_output
         timeout_seconds: 1200
       - action: open_draft_pr

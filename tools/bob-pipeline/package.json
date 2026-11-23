@@ -13,7 +13,8 @@
     "start": "npm run build && npm run start -w @bob-pipeline/server",
     "validate": "npm run validate -w @bob-pipeline/server",
     "setup-labels": "npm run setup-labels -w @bob-pipeline/server",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "demo": "npm run build && BOB_PIPELINE_CONFIG=\"$PWD/pipeline.demo.yaml\" BOB_PIPELINE_DATA=\"$PWD/.data-demo\" npm run start -w @bob-pipeline/server -- --auto-poll"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
