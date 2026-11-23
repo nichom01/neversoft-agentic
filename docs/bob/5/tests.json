@@ -1,0 +1,197 @@
+{
+  "issue": 5,
+  "tests": [
+    {
+      "id": "T-1",
+      "layer": "smoke",
+      "title": "Clean install, typecheck, build and dev server start",
+      "target": "sales-orders-ui/tests/smoke/smoke.sh",
+      "rationale": "Only a real shell run proves a clean checkout installs, compiles, bundles and serves on http://localhost:5173 with the #root element. Lower layers run inside Vitest and never exercise the Vite CLI.",
+      "traces_to": ["AC-1", "AC-6"]
+    },
+    {
+      "id": "T-2",
+      "layer": "smoke",
+      "title": "Root Java npm test still passes and no existing file is modified",
+      "target": "sales-orders-ui/tests/smoke/smoke.sh (second stage: root npm test plus git diff --name-status check)",
+      "rationale": "AC-8 is a repo-wide property that no in-project test can see. It needs the root npm test and git to confirm only additions under sales-orders-ui/ and docs/bob/5/.",
+      "traces_to": ["AC-8", "risk: Root `package.json` or Java test affected by the new project"]
+    },
+    {
+      "id": "T-3",
+      "layer": "bdd",
+      "title": "Create a sales order and see it listed",
+      "gherkin": "Given the sales orders page is open with no orders\nWhen the user enters customer name \"Acme Ltd\" and order date \"2025-01-15\" and submits the order form\nThen the order list shows an order for \"Acme Ltd\" dated \"2025-01-15\" with 0 lines and total 0.00\nAnd the new order is selected so its detail view is shown",
+      "target": "sales-orders-ui/src/__tests__/features/create-order.test.tsx",
+      "rationale": "Primary user journey spanning OrderForm, App state and OrderList; only a full render proves the wiring.",
+      "traces_to": ["AC-2", "AC-5"]
+    },
+    {
+      "id": "T-4",
+      "layer": "bdd",
+      "title": "Empty required order fields are rejected",
+      "gherkin": "Given the sales orders page is open\nWhen the user submits the order form with an empty customer name\nThen a validation error is shown for customer name and no order is added\nWhen the user submits the order form with customer name \"Acme Ltd\" and an empty order date\nThen a validation error is shown for order date and no order is added",
+      "target": "sales-orders-ui/src/__tests__/features/create-order.test.tsx",
+      "rationale": "AC-2 is a user-visible rejection; this proves the error reaches the user and App state is unchanged. Per-field rules are covered at component level (T-10).",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-5",
+      "layer": "bdd",
+      "title": "Add lines and see line totals and order total",
+      "gherkin": "Given an order for \"Acme Ltd\" is selected\nWhen the user adds a line \"Widget\" with quantity 2 and unit price 10.50\nAnd the user adds a line \"Gadget\" with quantity 3 and unit price 4.00\nThen the lines table shows \"Widget\" with total 21.00 and \"Gadget\" with total 12.00\nAnd the order total shows 33.00\nAnd the order list shows the order with 2 lines and total 33.00",
+      "target": "sales-orders-ui/src/__tests__/features/order-lines.test.tsx",
+      "rationale": "Totals must be consistent across OrderDetail, OrderList and App state after several adds; this cross-component behaviour is only visible with the full render.",
+      "traces_to": ["AC-3", "AC-4", "AC-5"]
+    },
+    {
+      "id": "T-6",
+      "layer": "bdd",
+      "title": "Invalid lines are rejected",
+      "gherkin": "Given an order for \"Acme Ltd\" is selected\nWhen the user submits a line with quantity 0\nOr with quantity -1\nOr with unit price -5\nOr with an empty description\nThen a validation error is shown and no line is added\nAnd the order total is unchanged\nWhen the user submits a line with quantity 1 and unit price 0\nThen the line is added with total 0.00",
+      "target": "sales-orders-ui/src/__tests__/features/order-lines.test.tsx",
+      "rationale": "The user-visible outcome (error shown, total not corrupted) needs the whole page. Boundary values are proved at component level (T-11). Written as a scenario outline.",
+      "traces_to": ["AC-3", "risk: Invalid numeric input (negative or NaN quantity or price)"]
+    },
+    {
+      "id": "T-7",
+      "layer": "bdd",
+      "title": "Remove a line",
+      "gherkin": "Given an order has lines \"Widget\" (21.00) and \"Gadget\" (12.00) with total 33.00\nWhen the user removes the \"Widget\" line\nThen only \"Gadget\" remains in the lines table\nAnd the order total shows 12.00\nAnd the order list shows the order with 1 line and total 12.00",
+      "target": "sales-orders-ui/src/__tests__/features/order-lines.test.tsx",
+      "rationale": "Removal flows from OrderDetail through App state to totals in OrderList, so it spans components.",
+      "traces_to": ["AC-3", "AC-4"]
+    },
+    {
+      "id": "T-8",
+      "layer": "bdd",
+      "title": "Select between orders to view their lines",
+      "gherkin": "Given orders \"Acme Ltd\" (line \"Widget\") and \"Globex\" (line \"Gizmo\") exist\nWhen the user selects \"Globex\" in the order list\nThen the detail view shows \"Globex\" with line \"Gizmo\" and not \"Widget\"\nWhen the user selects \"Acme Ltd\"\nThen the detail view shows \"Acme Ltd\" with line \"Widget\"\nAnd a line added now goes to \"Acme Ltd\" only",
+      "target": "sales-orders-ui/src/__tests__/features/select-order.test.tsx",
+      "rationale": "Selection state lives in App; proving lines attach to the selected order and not the latest one needs the full render.",
+      "traces_to": ["AC-5"]
+    },
+    {
+      "id": "T-9",
+      "layer": "bdd",
+      "title": "Orders survive a page reload",
+      "gherkin": "Given the user has created an order \"Acme Ltd\" with a line \"Widget\"\nWhen the page is reloaded (App unmounted and mounted again with the same localStorage)\nThen the order list still shows \"Acme Ltd\" with its line \"Widget\" and the same totals",
+      "target": "sales-orders-ui/src/__tests__/features/persistence.test.tsx",
+      "rationale": "Persistence is a user-visible promise documented in the README; it needs App to load on mount and save on change.",
+      "traces_to": ["AC-5", "AC-7", "risk: Author expected a backend or persistence beyond the browser"]
+    },
+    {
+      "id": "T-10",
+      "layer": "component",
+      "title": "OrderForm validation and submit contract",
+      "target": "sales-orders-ui/src/components/__tests__/OrderForm.test.tsx",
+      "rationale": "Verifies the OrderFormProps.onCreateOrder contract and error rendering directly: empty or whitespace-only customer name rejected, empty date rejected, onCreateOrder not called on error, trimmed payload on valid submit, form reset. Faster and more precise than going through App.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-11",
+      "layer": "component",
+      "title": "OrderLineForm validation and submit contract",
+      "target": "sales-orders-ui/src/components/__tests__/OrderLineForm.test.tsx",
+      "rationale": "Holds the boundary rules (blank description, quantity 0/negative/empty/non-numeric rejected, negative or non-numeric price rejected, price 0 and fractional price accepted, onAddLine receives numbers and never NaN). A presentation boundary, so a component test with real events is the lowest layer that proves it.",
+      "traces_to": ["AC-3", "risk: Invalid numeric input (negative or NaN quantity or price)"]
+    },
+    {
+      "id": "T-12",
+      "layer": "component",
+      "title": "OrderList rendering and selection",
+      "target": "sales-orders-ui/src/components/__tests__/OrderList.test.tsx",
+      "rationale": "Verifies the OrderListProps contract in isolation: empty state, customer/date/line count/total per order, click calls onSelectOrder with the id, selectedOrderId marked as selected.",
+      "traces_to": ["AC-5"]
+    },
+    {
+      "id": "T-13",
+      "layer": "component",
+      "title": "OrderDetail lines table, totals and remove trigger",
+      "target": "sales-orders-ui/src/components/__tests__/OrderDetail.test.tsx",
+      "rationale": "Verifies the OrderDetailProps contract and display of computed values without full App state: line fields and totals, order total, empty state, remove calls onRemoveLine with the line id, embedded form calls onAddLine, 2-decimal money formatting.",
+      "traces_to": ["AC-3", "AC-4", "AC-5"]
+    },
+    {
+      "id": "T-14",
+      "layer": "component",
+      "title": "storage.ts against the real localStorage boundary",
+      "target": "sales-orders-ui/src/__tests__/storage.localstorage.test.ts",
+      "rationale": "The one external boundary the plan adds is browser storage and its key. Using jsdom's real localStorage (not a mock) catches a wrong key or serialisation bug: saveOrders writes under sales_orders_v1, loadOrders round-trips nested lines and totals, empty storage gives [].",
+      "traces_to": ["AC-5", "risk: Author expected a backend or persistence beyond the browser"]
+    },
+    {
+      "id": "T-15",
+      "layer": "unit",
+      "title": "calculateLineTotal",
+      "target": "sales-orders-ui/src/__tests__/storage.test.ts",
+      "rationale": "Pure arithmetic with float-precision edge cases (3 x 0.1 = 0.3, 3 x 19.99 = 59.97, price 0, large quantity, 2-decimal rounding), which the LLP explicitly calls out.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-16",
+      "layer": "unit",
+      "title": "calculateOrderTotal",
+      "target": "sales-orders-ui/src/__tests__/storage.test.ts",
+      "rationale": "Pure sum logic: empty lines gives 0, single line, several lines, float drift (0.1 + 0.2 gives 0.3), zero-total lines.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-17",
+      "layer": "unit",
+      "title": "createOrder",
+      "target": "sales-orders-ui/src/__tests__/storage.test.ts",
+      "rationale": "Pure construction logic and id uniqueness that selection and React keys rely on: fields from input, empty lines, total 0, non-empty unique ids, input not mutated.",
+      "traces_to": ["AC-2", "AC-5"]
+    },
+    {
+      "id": "T-18",
+      "layer": "unit",
+      "title": "addLineToOrder",
+      "target": "sales-orders-ui/src/__tests__/storage.test.ts",
+      "rationale": "State transition with immutability that React rendering depends on: line appended with computed total, order total recomputed, unique line ids, existing lines keep order, original order not mutated.",
+      "traces_to": ["AC-3", "AC-4"]
+    },
+    {
+      "id": "T-19",
+      "layer": "unit",
+      "title": "removeLineFromOrder",
+      "target": "sales-orders-ui/src/__tests__/storage.test.ts",
+      "rationale": "Pure state transition with an unknown-id edge case: removes only the given line, recomputes total, last line removed gives total 0, unknown id is a no-op, original not mutated.",
+      "traces_to": ["AC-3", "AC-4"]
+    },
+    {
+      "id": "T-20",
+      "layer": "unit",
+      "title": "loadOrders / saveOrders failure handling",
+      "target": "sales-orders-ui/src/__tests__/storage.failure.test.ts",
+      "rationale": "The LLP promises safe fallbacks. Failures are hard to force through the UI, so a stubbed localStorage proves: corrupt JSON gives [], wrong-shape JSON gives [], setItem throwing does not throw from saveOrders, getItem throwing gives [].",
+      "traces_to": ["AC-5", "risk: Author expected a backend or persistence beyond the browser"]
+    },
+    {
+      "id": "T-21",
+      "layer": "unit",
+      "title": "README content check",
+      "target": "sales-orders-ui/src/__tests__/project.test.ts (reads sales-orders-ui/README.md and package.json)",
+      "rationale": "The README is a static file, so a fast test replaces manual review: it exists, states a Node version, contains npm install / npm run dev / build / typecheck and http://localhost:5173, mentions localStorage and client-side-only data, every named npm script exists in package.json, and the Node version is consistent with engines.node. Executing the steps from a clean checkout is proved at T-1.",
+      "traces_to": ["AC-7", "risk: Author expected a backend or persistence beyond the browser"]
+    },
+    {
+      "id": "T-22",
+      "layer": "unit",
+      "title": "Project configuration and dependency hygiene",
+      "target": "sales-orders-ui/src/__tests__/project.test.ts",
+      "rationale": "Static config checks cheap to run on every npm test: dev/build/typecheck/test scripts, react/react-dom/vite present, tsconfig strict true, package-lock.json exists, index.html has #root and /src/main.tsx, no workspaces entry. Actual compile and bundle success is proved at T-1.",
+      "traces_to": ["AC-1", "AC-6", "risk: Dependency vulnerabilities or EOL packages"]
+    }
+  ],
+  "gaps": [
+    "Risk 'Chosen directory or name differs from the author's expectation': a product decision with no observable behaviour to test.",
+    "Risk 'Dependency vulnerabilities or EOL packages': T-22 only checks the lockfile and expected packages exist. npm audit needs network access and its results change over time, so it is a CI/manual step on the PR, not an automated test.",
+    "AC-7 'steps that work from a clean checkout': steps are executed by T-1 and README text checked by T-21; clarity of the prose is left to human review.",
+    "No real-browser end-to-end tests (Playwright/Cypress): neither is in the repo and jsdom covers all behaviour in the ACs. Layout and CSS (index.css) are not tested and need a visual check.",
+    "Behaviour of addLineToOrder with invalid input is unspecified in the LLP; validation is tested in the forms (T-10, T-11), not the helpers. If guards are added to the helpers, add cases to T-18.",
+    "Currency formatting beyond two decimals and locale handling: out of scope per the HLP (currency is an open question).",
+    "Test tooling (vitest, jsdom, @testing-library/*, a test script and Vitest config) is not listed in the LLP and must be added to sales-orders-ui/package.json and vite.config.ts; it stays inside the new project so AC-8 is unaffected."
+  ]
+}

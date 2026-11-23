@@ -1,0 +1,315 @@
+{
+  "issue": 5,
+  "changes": [
+    {
+      "path": "sales-orders-ui/package.json",
+      "action": "create",
+      "description": "Project manifest defining dependencies (react, react-dom), dev dependencies (typescript, vite, @vitejs/plugin-react, @types/react, @types/react-dom), and scripts (dev, build, typecheck).",
+      "symbols": [
+        "package.json"
+      ],
+      "covers": [
+        "AC-1",
+        "AC-6",
+        "AC-8"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/tsconfig.json",
+      "action": "create",
+      "description": "TypeScript configuration for React and Vite with strict mode enabled, JSX transform (react-jsx), DOM types, and ESNext module resolution.",
+      "symbols": [
+        "tsconfig.json"
+      ],
+      "covers": [
+        "AC-1",
+        "AC-6"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/vite.config.ts",
+      "action": "create",
+      "description": "Vite configuration using @vitejs/plugin-react and standard development server defaults (port 5173).",
+      "symbols": [
+        "defineConfig"
+      ],
+      "covers": [
+        "AC-1",
+        "AC-6"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/index.html",
+      "action": "create",
+      "description": "HTML entry point providing the #root mount container and linking to /src/main.tsx.",
+      "symbols": [
+        "index.html"
+      ],
+      "covers": [
+        "AC-1"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/types.ts",
+      "action": "create",
+      "description": "TypeScript interfaces defining domain models and form inputs for sales orders and sales order lines.",
+      "symbols": [
+        "SalesOrder",
+        "SalesOrderLine",
+        "CreateOrderInput",
+        "CreateLineInput"
+      ],
+      "covers": [
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/storage.ts",
+      "action": "create",
+      "description": "Data access module providing order CRUD helpers, calculation utilities (calculateLineTotal, calculateOrderTotal), ID generation, and localStorage persistence with safe fallbacks.",
+      "symbols": [
+        "calculateLineTotal",
+        "calculateOrderTotal",
+        "loadOrders",
+        "saveOrders",
+        "createOrder",
+        "addLineToOrder",
+        "removeLineFromOrder"
+      ],
+      "covers": [
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/components/OrderForm.tsx",
+      "action": "create",
+      "description": "Form component for creating a new sales order header with customer name and order date, including validation error display.",
+      "symbols": [
+        "OrderForm",
+        "OrderFormProps"
+      ],
+      "covers": [
+        "AC-2"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/components/OrderLineForm.tsx",
+      "action": "create",
+      "description": "Form component for adding line items (description, quantity, unit price) to an order, validating quantity > 0 and unit price >= 0.",
+      "symbols": [
+        "OrderLineForm",
+        "OrderLineFormProps"
+      ],
+      "covers": [
+        "AC-3",
+        "AC-4"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/components/OrderList.tsx",
+      "action": "create",
+      "description": "Component listing all created sales orders with header details, line counts, totals, and selection controls.",
+      "symbols": [
+        "OrderList",
+        "OrderListProps"
+      ],
+      "covers": [
+        "AC-5"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/components/OrderDetail.tsx",
+      "action": "create",
+      "description": "Detail view rendering selected order information, the line items table with per-line totals and delete actions, the order total, and the line addition form.",
+      "symbols": [
+        "OrderDetail",
+        "OrderDetailProps"
+      ],
+      "covers": [
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/App.tsx",
+      "action": "create",
+      "description": "Root application component managing active orders state, selection, order creation, line addition, and line removal.",
+      "symbols": [
+        "App"
+      ],
+      "covers": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/main.tsx",
+      "action": "create",
+      "description": "Application entry point rendering the App component into the DOM #root container.",
+      "symbols": [
+        "main"
+      ],
+      "covers": [
+        "AC-1"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/src/index.css",
+      "action": "create",
+      "description": "Stylesheet providing layout, form controls, table presentation, badges, error alerts, and responsive structure.",
+      "symbols": [
+        "index.css"
+      ],
+      "covers": [
+        "AC-1",
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "path": "sales-orders-ui/README.md",
+      "action": "create",
+      "description": "Documentation covering prerequisites (Node.js 18+), installation steps (npm install), starting the local dev server (npm run dev), build commands (npm run build, npm run typecheck), and client-side persistence notes.",
+      "symbols": [
+        "README.md"
+      ],
+      "covers": [
+        "AC-7"
+      ]
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "SalesOrderLine",
+      "signature": "interface SalesOrderLine { id: string; description: string; quantity: number; unitPrice: number; total: number; }",
+      "notes": "Domain model for an individual order line item"
+    },
+    {
+      "name": "SalesOrder",
+      "signature": "interface SalesOrder { id: string; customerName: string; orderDate: string; lines: SalesOrderLine[]; total: number; }",
+      "notes": "Domain model for a sales order header with lines and aggregated total"
+    },
+    {
+      "name": "CreateOrderInput",
+      "signature": "interface CreateOrderInput { customerName: string; orderDate: string; }",
+      "notes": "Input payload for creating a sales order header"
+    },
+    {
+      "name": "CreateLineInput",
+      "signature": "interface CreateLineInput { description: string; quantity: number; unitPrice: number; }",
+      "notes": "Input payload for adding a line item to an order"
+    },
+    {
+      "name": "calculateLineTotal",
+      "signature": "function calculateLineTotal(quantity: number, unitPrice: number): number",
+      "notes": "Calculates quantity * unitPrice rounded to two decimal places"
+    },
+    {
+      "name": "calculateOrderTotal",
+      "signature": "function calculateOrderTotal(lines: SalesOrderLine[]): number",
+      "notes": "Calculates the sum of all line totals in an order"
+    },
+    {
+      "name": "loadOrders",
+      "signature": "function loadOrders(): SalesOrder[]",
+      "notes": "Retrieves persisted orders from localStorage or falls back to an empty list"
+    },
+    {
+      "name": "saveOrders",
+      "signature": "function saveOrders(orders: SalesOrder[]): void",
+      "notes": "Persists order state to localStorage"
+    },
+    {
+      "name": "createOrder",
+      "signature": "function createOrder(input: CreateOrderInput): SalesOrder",
+      "notes": "Factory function creating a new SalesOrder with empty lines and zero total"
+    },
+    {
+      "name": "addLineToOrder",
+      "signature": "function addLineToOrder(order: SalesOrder, lineInput: CreateLineInput): SalesOrder",
+      "notes": "Appends a new line item to an order and recalculates order total"
+    },
+    {
+      "name": "removeLineFromOrder",
+      "signature": "function removeLineFromOrder(order: SalesOrder, lineId: string): SalesOrder",
+      "notes": "Removes a line item by ID and recalculates order total"
+    },
+    {
+      "name": "OrderForm",
+      "signature": "function OrderForm(props: { onCreateOrder: (input: CreateOrderInput) => void }): JSX.Element",
+      "notes": "Sales order creation form component"
+    },
+    {
+      "name": "OrderLineForm",
+      "signature": "function OrderLineForm(props: { onAddLine: (input: CreateLineInput) => void }): JSX.Element",
+      "notes": "Sales order line creation form component"
+    },
+    {
+      "name": "OrderList",
+      "signature": "function OrderList(props: { orders: SalesOrder[]; selectedOrderId: string | null; onSelectOrder: (orderId: string) => void }): JSX.Element",
+      "notes": "Sales order summary list component"
+    },
+    {
+      "name": "OrderDetail",
+      "signature": "function OrderDetail(props: { order: SalesOrder; onAddLine: (input: CreateLineInput) => void; onRemoveLine: (lineId: string) => void }): JSX.Element",
+      "notes": "Selected order detail view component"
+    }
+  ],
+  "data_changes": [
+    "Local storage key sales_orders_v1 in browser localStorage for client-side persistence of sales orders. No database migrations or environment variables."
+  ],
+  "test_approach": [
+    {
+      "layer": "smoke",
+      "what": "Verify clean project installation (npm install), development server launch (npm run dev), production bundle build (npm run build), TypeScript type checking (npm run typecheck), and ensure root Java npm test continues to pass unchanged",
+      "covers": [
+        "AC-1",
+        "AC-6",
+        "AC-8"
+      ]
+    },
+    {
+      "layer": "bdd",
+      "what": "End-to-end user workflows: creating a new sales order with customer name and date, viewing it in the order list, adding multiple valid order lines, verifying live calculated line totals and order totals, selecting different orders, and removing lines",
+      "covers": [
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "layer": "component",
+      "what": "Form validation testing for OrderForm (rejecting empty customer name or date) and OrderLineForm (rejecting blank description, non-positive quantity, negative unit price); verify OrderList item selection and OrderDetail line item display and delete trigger",
+      "covers": [
+        "AC-2",
+        "AC-3",
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "layer": "unit",
+      "what": "Unit testing calculation and state helper functions in storage.ts: calculateLineTotal (multiplication and precision rounding), calculateOrderTotal (sum of line totals), createOrder, addLineToOrder, and removeLineFromOrder",
+      "covers": [
+        "AC-2",
+        "AC-3",
+        "AC-4"
+      ]
+    }
+  ],
+  "rollout": "1. Create sales-orders-ui/ directory with package.json, tsconfig.json, vite.config.ts, index.html, and README.md.\n2. Implement TypeScript models in src/types.ts and calculation/storage utilities in src/storage.ts.\n3. Implement UI components: OrderForm.tsx, OrderLineForm.tsx, OrderList.tsx, OrderDetail.tsx, and root App.tsx / main.tsx / index.css.\n4. Validate npm run typecheck and npm run build in sales-orders-ui/.\n5. Verify root repository tests (npm test) remain green and no existing files are modified.",
+  "open_questions": []
+}
