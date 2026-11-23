@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Low-level plan",
+  "type": "object",
+  "required": ["issue", "changes", "test_approach"],
+  "additionalProperties": false,
+  "properties": {
+    "issue": { "type": "integer" },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "action", "description"],
+        "properties": {
+          "path": { "type": "string" },
+          "action": { "enum": ["create", "modify", "delete", "rename"] },
+          "description": { "type": "string" },
+          "symbols": { "type": "array", "items": { "type": "string" }, "description": "Functions/classes/types added or changed" },
+          "covers": { "type": "array", "items": { "type": "string" }, "description": "Acceptance criteria ids (AC-n) this change serves" }
+        }
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "signature"],
+        "properties": { "name": { "type": "string" }, "signature": { "type": "string" }, "notes": { "type": "string" } }
+      }
+    },
+    "data_changes": { "type": "array", "items": { "type": "string" }, "description": "Schema, migration or config changes" },
+    "test_approach": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["layer", "what"],
+        "properties": {
+          "layer": { "enum": ["smoke", "bdd", "component", "unit"] },
+          "what": { "type": "string" },
+          "covers": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "rollout": { "type": "string" },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}

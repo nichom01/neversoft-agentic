@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Top-down test plan (phase 3)",
+  "type": "object",
+  "required": [
+    "issue",
+    "tests"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "issue": {
+      "type": "integer"
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "layer",
+          "title",
+          "rationale",
+          "traces_to"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^T-[0-9]+$"
+          },
+          "layer": {
+            "enum": [
+              "smoke",
+              "bdd",
+              "component",
+              "unit"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "gherkin": {
+            "type": "string",
+            "description": "Given/When/Then, for bdd tests"
+          },
+          "target": {
+            "type": "string",
+            "description": "File, component or endpoint under test"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this test exists at this layer"
+          },
+          "traces_to": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "AC-n ids or risk descriptions"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Criteria or risks with no test, and why"
+    }
+  }
+}

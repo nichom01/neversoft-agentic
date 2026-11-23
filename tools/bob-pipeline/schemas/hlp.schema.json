@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "High-level plan",
+  "type": "object",
+  "required": ["issue", "summary", "approach", "components", "files_likely_touched", "depends_on_issues", "assumptions", "risks", "acceptance_criteria", "complexity"],
+  "additionalProperties": false,
+  "properties": {
+    "issue": { "type": "integer", "description": "The GitHub issue number" },
+    "summary": { "type": "string", "minLength": 10, "description": "One or two sentences: what will be done" },
+    "approach": { "type": "string", "minLength": 20, "description": "The chosen approach in a short paragraph" },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["option", "rejected_because"],
+        "properties": { "option": { "type": "string" }, "rejected_because": { "type": "string" } }
+      }
+    },
+    "components": { "type": "array", "items": { "type": "string" }, "description": "Modules/services affected" },
+    "files_likely_touched": { "type": "array", "items": { "type": "string" }, "description": "Paths or globs" },
+    "depends_on_issues": { "type": "array", "items": { "type": "integer" }, "description": "Other issue numbers this one needs first" },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["risk", "mitigation"],
+        "properties": {
+          "risk": { "type": "string" },
+          "severity": { "enum": ["low", "medium", "high"] },
+          "mitigation": { "type": "string" }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "criterion"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^AC-[0-9]+$" },
+          "criterion": { "type": "string" }
+        }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "complexity": { "enum": ["S", "M", "L", "XL"] }
+  }
+}

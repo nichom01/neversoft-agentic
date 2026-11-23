@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cross-issue dependency check (phase 2)",
+  "type": "object",
+  "required": ["issue", "dependencies", "conflicts"],
+  "additionalProperties": false,
+  "properties": {
+    "issue": { "type": "integer" },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["issue", "kind", "reason", "confidence"],
+        "properties": {
+          "issue": { "type": "integer", "description": "The other issue" },
+          "kind": { "enum": ["blocked_by", "blocks", "overlaps"] },
+          "reason": { "type": "string" },
+          "shared": { "type": "array", "items": { "type": "string" }, "description": "Shared files/components" },
+          "confidence": { "enum": ["low", "medium", "high"] }
+        }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["issues", "description"],
+        "properties": {
+          "issues": { "type": "array", "items": { "type": "integer" } },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "recommended_order": { "type": "array", "items": { "type": "integer" } }
+  }
+}
