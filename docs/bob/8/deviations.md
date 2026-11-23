@@ -1,0 +1,6 @@
+# Deviations: #8 ui styling
+
+1. **Scripted static checks added** (`tools/bob-pipeline/apps/web/scripts/style-checks.test.mjs`, `npm run test:style -w @bob-pipeline/web`). The LLP's test approach had no automated harness and listed manual or grep checks. The test plan asks for T-2, T-10, T-11, T-12 and T-13 to be written as tests. They are implemented with the built-in `node:test` runner, so there is no new dependency. T-11, T-12 and T-13 check the source text rather than importing the modules, because the web app has no TS test runner. This adds a `test:style` script to `apps/web/package.json`, which the LLP did not list.
+2. **Manual and visual tests not automated** (T-3 to T-9, and the browser parts of T-1). The plan scopes these as manual walkthroughs, visual review and responsive review recorded in the PR. T-1's build and `dist` checks were run by hand: `npm run build -w @bob-pipeline/web` succeeded, `dist` contains the Inter `.woff2` files, and `grep googleapis|gstatic` over `dist` found nothing.
+3. **`npm run typecheck` at the workspace root fails in `apps/server`** because `ajv` is declared but not installed in this environment. This is unrelated to #8. `npm run typecheck -w @bob-pipeline/web` passes.
+4. **`@fontsource-variable/inter` was installed at `^5.3.0`**, the latest 5.x at install time. The LLP said `^5.2.0` or the latest 5.x.

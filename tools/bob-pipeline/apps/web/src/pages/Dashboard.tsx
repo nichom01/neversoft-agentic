@@ -25,7 +25,7 @@ export function Dashboard() {
     return c;
   }, [inPipeline]);
 
-  if (isLoading) return <p className="text-slate-500">Loading issues…</p>;
+  if (isLoading) return <p className="text-muted">Loading issues…</p>;
 
   return (
     <div className="space-y-6">
@@ -36,7 +36,7 @@ export function Dashboard() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`rounded-full border px-3 py-1 text-sm ${filter === s ? "border-slate-800 bg-slate-800 text-white" : "border-slate-300 bg-white"} ${
+            className={`rounded-full border px-3 py-1 text-sm transition-colors ${filter === s ? "border-brand-700 bg-brand-700 text-white" : "border-line-strong bg-surface text-ink hover:bg-subtle"} ${
               s !== "all" && ATTENTION.includes(s) && counts[s] ? "font-semibold" : ""
             }`}
           >
@@ -65,25 +65,25 @@ export function Dashboard() {
       </div>
 
       <Card>
-        <button className="flex w-full items-center justify-between px-4 py-3 text-left" onClick={() => setShowIdle(!showIdle)}>
+        <button className="flex w-full items-center justify-between rounded-card px-4 py-3 text-left hover:bg-canvas" onClick={() => setShowIdle(!showIdle)}>
           <span className="font-semibold">Not in the pipeline ({idle.length})</span>
-          <span className="text-sm text-slate-500">{showIdle ? "Hide" : "Show"}</span>
+          <span className="text-sm text-muted">{showIdle ? "Hide" : "Show"}</span>
         </button>
         {showIdle && (
-          <div className="divide-y divide-slate-100 border-t border-slate-100">
+          <div className="divide-y divide-line border-t border-line">
             {idle.map((i) => (
               <IdleRow key={i.number} issue={i} />
             ))}
-            {!idle.length && <p className="px-4 py-3 text-sm text-slate-500">Every open issue is in the pipeline.</p>}
+            {!idle.length && <p className="px-4 py-3 text-sm text-muted">Every open issue is in the pipeline.</p>}
           </div>
         )}
       </Card>
 
       {parked.length > 0 && (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Parked:{" "}
           {parked.map((i) => (
-            <Link key={i.number} className="mr-2 underline" to={`/issues/${i.number}`}>
+            <Link key={i.number} className="mr-2 text-brand-700 underline" to={`/issues/${i.number}`}>
               #{i.number}
             </Link>
           ))}
@@ -100,13 +100,13 @@ function label(s: IssueStatus) {
 function Column({ title, subtitle, index, children }: { title: string; subtitle?: string; index: number; children: React.ReactNode }) {
   const empty = !(Array.isArray(children) ? children.length : children);
   return (
-    <div className="flex min-h-48 flex-col rounded-lg bg-slate-100 p-3">
+    <div className="flex min-h-48 flex-col rounded-card border border-line bg-subtle p-3">
       <div className="mb-3 flex items-baseline gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-xs font-bold">{index}</span>
-        <h3 className="font-semibold">{title}</h3>
-        {subtitle && <span className="text-xs text-slate-500">{subtitle}</span>}
+        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-line-strong bg-surface text-xs font-bold text-ink">{index}</span>
+        <h3 className="font-semibold text-ink">{title}</h3>
+        {subtitle && <span className="text-xs text-muted">{subtitle}</span>}
       </div>
-      <div className="flex flex-col gap-2">{empty ? <p className="text-xs text-slate-400">Nothing here</p> : children}</div>
+      <div className="flex flex-col gap-2">{empty ? <p className="text-xs text-muted">Nothing here</p> : children}</div>
     </div>
   );
 }
@@ -114,14 +114,14 @@ function Column({ title, subtitle, index, children }: { title: string; subtitle?
 function IssueCard({ issue }: { issue: IssueSummary }) {
   const r = issue.lastRun;
   return (
-    <Link to={`/issues/${issue.number}`}>
-      <Card className="p-3 transition hover:border-slate-400">
+    <Link to={`/issues/${issue.number}`} className="block rounded-card">
+      <Card className="p-3 transition hover:border-brand-500 hover:shadow-pop">
         <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="text-xs font-mono text-slate-500">#{issue.number}</span>
+          <span className="text-xs font-mono text-muted">#{issue.number}</span>
           <StatusBadge status={issue.state.status} />
         </div>
         <div className="text-sm font-medium leading-snug">{issue.title}</div>
-        <div className="mt-2 text-xs text-slate-500">
+        <div className="mt-2 text-xs text-muted">
           {issue.state.status === "running" && r?.status === "running" ? (
             <>Running {duration(r.startedAt, null)} on this machine</>
           ) : issue.state.status === "running" ? (
@@ -158,11 +158,11 @@ function IdleRow({ issue }: { issue: IssueSummary }) {
   };
   return (
     <div className="flex items-center gap-3 px-4 py-2">
-      <span className="font-mono text-xs text-slate-500">#{issue.number}</span>
-      <Link to={`/issues/${issue.number}`} className="flex-1 text-sm hover:underline">
+      <span className="font-mono text-xs text-muted">#{issue.number}</span>
+      <Link to={`/issues/${issue.number}`} className="flex-1 text-sm text-ink hover:underline">
         {issue.title}
       </Link>
-      {err ? <span className="text-xs text-red-600">{(err as Error).message}</span> : null}
+      {err ? <span className="text-xs text-red-700">{(err as Error).message}</span> : null}
       <Button variant="primary" onClick={start} disabled={busy}>
         Start pipeline
       </Button>

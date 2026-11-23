@@ -13,7 +13,7 @@ import { useDiff } from "../api";
 
 export function PlanView({ files }: StageViewProps) {
   const present = files.filter((f) => f.exists);
-  if (!present.length) return <p className="text-sm text-slate-500">No outputs yet for this stage.</p>;
+  if (!present.length) return <p className="text-sm text-muted">No outputs yet for this stage.</p>;
   return (
     <div className="space-y-6">
       {present.map((f) => (
@@ -29,14 +29,14 @@ function OutputFile({ f }: { f: StageOutputFile }) {
   return (
     <section>
       <div className="mb-2 flex items-center gap-3">
-        <h4 className="font-mono text-xs font-semibold text-slate-500">{f.file}</h4>
+        <h4 className="font-mono text-xs font-semibold text-muted">{f.file}</h4>
         {f.schemaErrors && (
-          <span className={`text-xs ${f.schemaErrors.length ? "text-red-600" : "text-emerald-600"}`}>
+          <span className={`text-xs ${f.schemaErrors.length ? "text-red-700" : "text-emerald-700"}`}>
             {f.schemaErrors.length ? `✗ ${f.schemaErrors.length} schema error(s)` : "✓ valid"}
           </span>
         )}
         {f.previous !== null && (
-          <label className="ml-auto flex items-center gap-1 text-xs text-slate-600">
+          <label className="ml-auto flex items-center gap-1 text-xs text-muted">
             <input type="checkbox" checked={showChanges} onChange={(e) => setShowChanges(e.target.checked)} />
             Show changes since previous version
           </label>
@@ -52,9 +52,9 @@ function OutputFile({ f }: { f: StageOutputFile }) {
       {showChanges && f.previous !== null ? (
         <RevisionDiff before={f.previous} after={f.content ?? ""} />
       ) : isJson ? (
-        <pre className="overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">{pretty(f.content ?? "")}</pre>
+        <pre className="overflow-auto rounded-control bg-code p-3 text-xs text-code-ink">{pretty(f.content ?? "")}</pre>
       ) : (
-        <article className="prose prose-sm prose-slate max-w-none">
+        <article className="prose prose-sm prose-gray max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.content ?? ""}</ReactMarkdown>
         </article>
       )}
@@ -65,9 +65,9 @@ function OutputFile({ f }: { f: StageOutputFile }) {
 function RevisionDiff({ before, after }: { before: string; after: string }) {
   const parts = diffLines(before, after);
   return (
-    <pre className="overflow-auto rounded-md border border-slate-200 bg-white p-3 text-xs leading-relaxed">
+    <pre className="overflow-auto rounded-control border border-line bg-surface p-3 text-xs leading-relaxed">
       {parts.map((p, i) => (
-        <span key={i} className={p.added ? "block bg-emerald-50 text-emerald-800" : p.removed ? "block bg-red-50 text-red-800 line-through" : "block text-slate-500"}>
+        <span key={i} className={p.added ? "block bg-emerald-50 text-emerald-800" : p.removed ? "block bg-red-50 text-red-800 line-through" : "block text-muted"}>
           {p.value}
         </span>
       ))}
@@ -80,8 +80,8 @@ export function RawView({ files }: StageViewProps) {
     <div className="space-y-4">
       {files.filter((f) => f.exists).map((f) => (
         <div key={f.file}>
-          <h4 className="mb-1 font-mono text-xs font-semibold text-slate-500">{f.file}</h4>
-          <pre className="overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">{f.content}</pre>
+          <h4 className="mb-1 font-mono text-xs font-semibold text-muted">{f.file}</h4>
+          <pre className="overflow-auto rounded-control bg-code p-3 text-xs text-code-ink">{f.content}</pre>
         </div>
       ))}
     </div>
@@ -94,11 +94,11 @@ export function DiffStageView(props: StageViewProps) {
     <div className="space-y-4">
       {props.files.some((f) => f.exists) && <PlanView {...props} />}
       {!props.issue.branchExists ? (
-        <p className="text-sm text-slate-500">No branch yet.</p>
+        <p className="text-sm text-muted">No branch yet.</p>
       ) : isLoading ? (
-        <p className="text-sm text-slate-500">Loading diff…</p>
+        <p className="text-sm text-muted">Loading diff…</p>
       ) : error ? (
-        <p className="text-sm text-red-600">{(error as Error).message}</p>
+        <p className="text-sm text-red-700">{(error as Error).message}</p>
       ) : (
         <UnifiedDiff text={data ?? ""} />
       )}
@@ -107,20 +107,20 @@ export function DiffStageView(props: StageViewProps) {
 }
 
 export function UnifiedDiff({ text }: { text: string }) {
-  if (!text.trim()) return <p className="text-sm text-slate-500">No changes against the base branch.</p>;
+  if (!text.trim()) return <p className="text-sm text-muted">No changes against the base branch.</p>;
   const lines = text.split("\n");
   return (
-    <pre className="max-h-[70vh] overflow-auto rounded-md border border-slate-200 bg-white text-xs leading-5">
+    <pre className="max-h-[70vh] overflow-auto rounded-control border border-line bg-surface text-xs leading-5">
       {lines.map((l, i) => {
         const cls = l.startsWith("diff --git")
-          ? "bg-slate-100 font-semibold text-slate-800 mt-2"
+          ? "bg-subtle font-semibold text-ink mt-2"
           : l.startsWith("@@")
             ? "text-sky-700 bg-sky-50"
             : l.startsWith("+") && !l.startsWith("+++")
               ? "bg-emerald-50 text-emerald-800"
               : l.startsWith("-") && !l.startsWith("---")
                 ? "bg-red-50 text-red-800"
-                : "text-slate-600";
+                : "text-muted";
         return (
           <div key={i} className={`px-3 ${cls}`}>
             {l || " "}

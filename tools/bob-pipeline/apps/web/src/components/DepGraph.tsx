@@ -9,12 +9,25 @@ import { StatusBadge } from "./ui";
 const W = 220;
 const H = 74;
 
+// Hex values can't use Tailwind classes; this mirrors tokens in index.css.
+const GRAPH_COLORS = {
+  overlaps: "#6b7280",
+  recorded: "#0f766e", // brand-700
+  depsCheck: "#c2410c", // orange-700
+  plan: "#4f46e5",
+  focus: "#0f766e", // brand-700
+  line: "#d1d5db", // line-strong
+  doneFill: "#f3f4f6", // subtle
+  grid: "#e5e7eb", // line
+  label: "#4b5563", // muted
+};
+
 /** Edge styling, also used by the legend. */
 export function edgeStyle(e: Pick<DependencyEdge, "kind" | "source" | "recorded">) {
-  if (e.kind === "overlaps") return { stroke: "#94a3b8", strokeDasharray: "2 4", label: "overlaps" };
-  if (e.recorded) return { stroke: "#059669", strokeDasharray: undefined, label: "blocked by (on GitHub)" };
-  if (e.source === "deps-check") return { stroke: "#ea580c", strokeDasharray: "6 4", label: "blocked by (dependency check)" };
-  return { stroke: "#6366f1", strokeDasharray: "6 4", label: "blocked by (plan)" };
+  if (e.kind === "overlaps") return { stroke: GRAPH_COLORS.overlaps, strokeDasharray: "2 4", label: "overlaps" };
+  if (e.recorded) return { stroke: GRAPH_COLORS.recorded, strokeDasharray: undefined, label: "blocked by (on GitHub)" };
+  if (e.source === "deps-check") return { stroke: GRAPH_COLORS.depsCheck, strokeDasharray: "6 4", label: "blocked by (dependency check)" };
+  return { stroke: GRAPH_COLORS.plan, strokeDasharray: "6 4", label: "blocked by (plan)" };
 }
 
 /**
@@ -62,7 +75,7 @@ export function DepGraph({
           label: (
             <div className="text-left">
               <div className="mb-1 flex items-center justify-between gap-2">
-                <span className="font-mono text-[11px] text-slate-500">#{n.number}</span>
+                <span className="font-mono text-[11px] text-muted">#{n.number}</span>
                 <StatusBadge status={n.status} />
               </div>
               <div className="line-clamp-2 text-xs font-medium leading-snug">{n.title}</div>
@@ -73,8 +86,12 @@ export function DepGraph({
           width: W,
           padding: 8,
           borderRadius: 8,
-          border: isFocus ? "2px solid #4f46e5" : n.hasPlan ? "1px solid #cbd5e1" : "1px dashed #cbd5e1",
-          background: n.status === "done" ? "#f8fafc" : "white",
+          border: isFocus
+            ? `2px solid ${GRAPH_COLORS.focus}`
+            : n.hasPlan
+              ? `1px solid ${GRAPH_COLORS.line}`
+              : `1px dashed ${GRAPH_COLORS.line}`,
+          background: n.status === "done" ? GRAPH_COLORS.doneFill : "white",
           cursor: "pointer",
         },
       };
@@ -92,16 +109,16 @@ export function DepGraph({
         style: { stroke: s.stroke, strokeDasharray: s.strokeDasharray, strokeWidth: e.confidence === "high" ? 2.2 : 1.4 },
         markerEnd: directed ? { type: MarkerType.ArrowClosed, color: s.stroke } : undefined,
         label: e.confidence === "low" ? undefined : e.shared.length ? `${e.shared.length} shared` : undefined,
-        labelStyle: { fontSize: 10, fill: "#64748b" },
+        labelStyle: { fontSize: 10, fill: GRAPH_COLORS.label },
       };
     });
     return { nodes, edges };
   }, [graph, focus, showOverlaps]);
 
-  if (!nodes.length) return <p className="text-sm text-slate-500">No issues to show.</p>;
+  if (!nodes.length) return <p className="text-sm text-muted">No issues to show.</p>;
 
   return (
-    <div style={{ height }} className="rounded-lg border border-slate-200 bg-white">
+    <div style={{ height }} className="rounded-card border border-line bg-surface">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -112,7 +129,7 @@ export function DepGraph({
         proOptions={{ hideAttribution: true }}
         minZoom={0.2}
       >
-        <Background gap={16} color="#e2e8f0" />
+        <Background gap={16} color={GRAPH_COLORS.grid} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>
@@ -127,7 +144,7 @@ export function GraphLegend() {
     { kind: "overlaps", source: "heuristic", recorded: false },
   ];
   return (
-    <div className="flex flex-wrap gap-4 text-xs text-slate-600">
+    <div className="flex flex-wrap gap-4 text-xs text-muted">
       {items.map((it) => {
         const s = edgeStyle(it);
         return (

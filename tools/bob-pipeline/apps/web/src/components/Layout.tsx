@@ -31,9 +31,9 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-6 py-3">
-          <Link to="/" className="text-lg font-bold">
+      <header className="sticky top-0 z-10 border-b border-line bg-surface shadow-card">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-4 py-3 sm:px-6">
+          <Link to="/" className="text-lg font-semibold tracking-tight text-ink">
             🤖 Bob pipeline
           </Link>
           <nav className="flex gap-1 text-sm">
@@ -45,27 +45,29 @@ export function Layout() {
                 key={to}
                 to={to}
                 end
-                className={({ isActive }) => `rounded-md px-2.5 py-1 ${isActive ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                className={({ isActive }) =>
+                  `rounded-control px-3 py-1.5 font-medium ${isActive ? "bg-brand-50 text-brand-700" : "text-muted hover:bg-subtle hover:text-ink"}`
+                }
               >
                 {label}
               </NavLink>
             ))}
           </nav>
           {info && (
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted">
               {info.repo.owner}/{info.repo.name} · v{info.pipeline.version} · {info.user}
             </span>
           )}
-          <div className="ml-auto flex items-center gap-3 text-sm">
+          <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
             {poller && (
               <>
-                <span className="text-slate-500">
+                <span className="text-muted">
                   {poller.running}/{poller.concurrency} running · {poller.queueSize} queued
                   {poller.lastPollAt && ` · polled ${timeAgo(poller.lastPollAt)}`}
                 </span>
-                {poller.lastError && <span className="text-red-600" title={poller.lastError}>poll error</span>}
+                {poller.lastError && <span className="text-red-700" title={poller.lastError}>poll error</span>}
                 <label className="flex cursor-pointer items-center gap-2" title="Only one person needs auto-poll on">
-                  <input type="checkbox" checked={poller.enabled} onChange={toggle} disabled={busy} />
+                  <input type="checkbox" className="accent-brand-700" checked={poller.enabled} onChange={toggle} disabled={busy} />
                   Auto-poll every {poller.intervalSeconds}s
                 </label>
                 <Button onClick={pollNow} disabled={busy}>
@@ -76,12 +78,12 @@ export function Layout() {
           </div>
         </div>
         {info?.warnings.length ? (
-          <div className="border-t border-amber-200 bg-amber-50 px-6 py-1.5 text-xs text-amber-800">
+          <div className="border-t border-amber-200 bg-amber-50 px-4 py-1.5 text-xs text-amber-900 sm:px-6">
             pipeline.yaml: {info.warnings.join(" · ")}
           </div>
         ) : null}
       </header>
-      <main className="mx-auto max-w-[1600px] px-6 py-6">
+      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
         <Outlet />
       </main>
     </div>
