@@ -1,0 +1,108 @@
+{
+  "issue": 3,
+  "changes": [
+    {
+      "path": "src/main/java/com/neversoft/warehouse/Warehouse.java",
+      "action": "create",
+      "description": "Root POJO in package com.neversoft.warehouse. Private fields: long id, String name, String address, List<Store> stores (initialised to new ArrayList). Public no-arg and all-args constructors; getter and setter per field; null list argument (constructor or setStores) becomes an empty list. addStore(Store) appends and throws NullPointerException on null via Objects.requireNonNull, without altering the child's warehouseId. equals/hashCode/toString use Objects over all four fields in the style of Vehicle.",
+      "symbols": ["Warehouse", "Warehouse.addStore"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-8"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/warehouse/Store.java",
+      "action": "create",
+      "description": "Named area within a warehouse. Private fields: long id, String name, long warehouseId, List<Location> locations (initialised to new ArrayList). No-arg and all-args constructors; getters and setters; null list becomes an empty list. addLocation(Location) appends and throws NullPointerException on null, without altering the child's storeId. equals/hashCode/toString over all four fields.",
+      "symbols": ["Store", "Store.addLocation"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-8"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/warehouse/Location.java",
+      "action": "create",
+      "description": "Physical storage slot. Private fields: long id, String code, long storeId, Integer capacity (nullable; null means no capacity set). No-arg and all-args constructors; getters and setters; null-safe equals/hashCode/toString via Objects.",
+      "symbols": ["Location"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-8"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/warehouse/Product.java",
+      "action": "create",
+      "description": "Catalogue item. Private fields: long id, String sku, String name, String description, String unitOfMeasure. No-arg and all-args constructors; getters and setters; null-safe equals/hashCode/toString over all five fields.",
+      "symbols": ["Product"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-5", "AC-8"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/warehouse/StockItem.java",
+      "action": "create",
+      "description": "Relationship between a location and the stock in it; the only place quantity lives. Private fields: long locationId, Product product, int quantity. No-arg and all-args constructors; getters and setters (setQuantity is plain, unvalidated). addQuantity(int) throws IllegalArgumentException if amount <= 0 or the sum would overflow Integer.MAX_VALUE. removeQuantity(int) throws IllegalArgumentException if amount <= 0 or amount > quantity. Quantity is unchanged on any exception; exceptions documented with @throws. equals/hashCode/toString over locationId, product and quantity, null-safe for product.",
+      "symbols": ["StockItem", "StockItem.addQuantity", "StockItem.removeQuantity"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-5", "AC-6", "AC-8"]
+    },
+    {
+      "path": "src/test/java/com/neversoft/warehouse/WarehouseTest.java",
+      "action": "create",
+      "description": "Dependency-free test harness in the style of VehicleTest (FAILURES, run, test, check, eq helpers; main exits 1 on failure). Tests W-1..W-12: FQN/public/package load; reflection on POJO shape and field types; constructor and getter/setter round-trips per class; non-null child lists and null-to-empty handling; addStore/addLocation append and null rejection; equals contract and hashCode consistency; equals false when any single field differs; null-field safety of equals/hashCode/toString; toString contains all fields and renders a full Warehouse tree; relationship test (one location with two products, one product in two locations); add/remove quantity happy paths; invalid add/remove arguments throw IllegalArgumentException and leave quantity unchanged. Must compile under -Xlint:all -Werror (no raw types or unchecked code).",
+      "symbols": ["WarehouseTest", "WarehouseTest.main"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8"]
+    },
+    {
+      "path": "package.json",
+      "action": "modify",
+      "description": "Change only the scripts.test string: add the five warehouse source files and WarehouseTest.java to the existing javac invocation (keeping --release 25 -Xlint:all -Werror and the Vehicle files), keep the existing java -cp \"$OUT\" com.neversoft.vehicle.VehicleTest step, and append && java -cp \"$OUT\" com.neversoft.warehouse.WarehouseTest. Inner quotes stay escaped so the JSON remains valid.",
+      "symbols": ["scripts.test"],
+      "covers": ["AC-7", "AC-8", "AC-9"]
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "Warehouse",
+      "signature": "public class Warehouse { Warehouse(); Warehouse(long id, String name, String address, List<Store> stores); void addStore(Store store); List<Store> getStores(); void setStores(List<Store> stores); }",
+      "notes": "getStores never returns null; a null list argument becomes an empty ArrayList; addStore throws NullPointerException on null. Plus getter/setter per field and equals/hashCode/toString."
+    },
+    {
+      "name": "Store",
+      "signature": "public class Store { Store(); Store(long id, String name, long warehouseId, List<Location> locations); void addLocation(Location location); List<Location> getLocations(); void setLocations(List<Location> locations); }",
+      "notes": "getLocations never returns null; a null list argument becomes an empty ArrayList; addLocation throws NullPointerException on null. Plus getter/setter per field and equals/hashCode/toString."
+    },
+    {
+      "name": "Location",
+      "signature": "public class Location { Location(); Location(long id, String code, long storeId, Integer capacity); Integer getCapacity(); }",
+      "notes": "capacity null means no capacity set. Plus getter/setter per field and equals/hashCode/toString."
+    },
+    {
+      "name": "Product",
+      "signature": "public class Product { Product(); Product(long id, String sku, String name, String description, String unitOfMeasure); }",
+      "notes": "Plus getter/setter per field and equals/hashCode/toString."
+    },
+    {
+      "name": "StockItem",
+      "signature": "public class StockItem { StockItem(); StockItem(long locationId, Product product, int quantity); void addQuantity(int amount); void removeQuantity(int amount); }",
+      "notes": "addQuantity throws IllegalArgumentException if amount <= 0 or the sum exceeds Integer.MAX_VALUE; removeQuantity throws IllegalArgumentException if amount <= 0 or amount > current quantity. Quantity unchanged on exception. Plus getter/setter per field and equals/hashCode/toString."
+    }
+  ],
+  "data_changes": [
+    "None apart from the scripts.test string in package.json; no migrations, schemas, flags or env vars."
+  ],
+  "test_approach": [
+    {
+      "layer": "smoke",
+      "what": "W-1: the five classes load by fully qualified name, are public and are in com.neversoft.warehouse. The npm test run itself proves the sources compile with -Xlint:all -Werror and that VehicleTest still passes.",
+      "covers": ["AC-1", "AC-7", "AC-8", "AC-9"]
+    },
+    {
+      "layer": "bdd",
+      "what": "W-10 (one location holding two products, one product stocked in two locations) and W-11/W-12 (add and remove stock, rejected removals), written as Given/When/Then comments in the style of VehicleTest.",
+      "covers": ["AC-5", "AC-6"]
+    },
+    {
+      "layer": "component",
+      "what": "W-4, W-5, W-9: build a Warehouse -> Store -> Location tree, check child lists are never null, append children, and print the whole tree without recursion.",
+      "covers": ["AC-3", "AC-4"]
+    },
+    {
+      "layer": "unit",
+      "what": "W-2, W-3, W-6, W-7, W-8: reflection checks on POJO shape, constructor/getter/setter round-trips per class, and the equals/hashCode/toString contract including null fields; W-12 checks each invalid StockItem argument individually.",
+      "covers": ["AC-2", "AC-3", "AC-6"]
+    }
+  ],
+  "rollout": "1) Create the five classes in src/main/java/com/neversoft/warehouse/ (order: Product, Location, Store, Warehouse, StockItem). 2) Create WarehouseTest.java. 3) Edit package.json last, then run npm test and confirm both VehicleTest and WarehouseTest pass with no compiler warnings. No flags; the change is additive and only the test script changes in an existing file, so Vehicle behaviour is unchanged.",
+  "open_questions": []
+}

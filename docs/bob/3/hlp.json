@@ -1,0 +1,120 @@
+{
+  "issue": 3,
+  "summary": "Add a small set of plain Java POJOs modelling a warehouse, the stores within it, storage locations, products, and the stock held at each location. Field and method sets are a best-guess starting point, as the author requested.",
+  "approach": "Create a new package com.neversoft.warehouse under src/main/java, following the conventions of the existing Vehicle POJO: public class, private fields, no-arg and all-args constructors, getters/setters, and equals/hashCode/toString. The repo has no build tool and package.json compiles with plain javac --release 25 -Xlint:all -Werror, so the classes stay dependency-free. Five classes: Warehouse (root; id, name, address, list of Stores), Store (named area within a warehouse; id, name, warehouseId, list of Locations), Location (physical slot such as aisle/rack/shelf/bin; id, code, storeId, optional capacity), Product (catalogue item; id, SKU, name, description, unit of measure) and StockItem (the relationship between a location and the stock in it; links a locationId to a Product with a quantity, and is the only place quantity lives, so a location can hold many products and a product can be stocked in many locations). Parent/child links go downward as lists (Warehouse to Store to Location); upward links are plain ids, as Vehicle uses a long id, which avoids object cycles that would break equals/hashCode/toString. A few small domain helpers are included (adding a child to a list, adjusting stock quantity without going negative). Following the repo pattern, a dependency-free test harness is added and the hardcoded package.json test script, which currently names only the Vehicle files, is extended to compile and run the warehouse sources and tests too.",
+  "alternatives_considered": [
+    {
+      "option": "Java records",
+      "rejected_because": "The author asked for POJOs and the fields will change, so mutable classes matching Vehicle are more consistent."
+    },
+    {
+      "option": "Bidirectional object references (Location.getStore() etc.)",
+      "rejected_because": "They create cycles in equals/hashCode/toString and the author asked for simple POJOs; ids are enough."
+    },
+    {
+      "option": "Store quantity directly on Location or Product",
+      "rejected_because": "A location can hold many products and a product can sit in many locations, so a separate StockItem models the relationship properly."
+    },
+    {
+      "option": "JPA/Lombok annotations",
+      "rejected_because": "Would add dependencies and a build system the repo does not have, and the author asked for plain POJOs."
+    },
+    {
+      "option": "Add a Maven/Gradle build",
+      "rejected_because": "Out of scope for the request."
+    }
+  ],
+  "components": [
+    "Java domain model (new package com.neversoft.warehouse) - new Warehouse, Store, Location, Product and StockItem classes",
+    "Java tests (new package under src/test/java) - new dependency-free test harness covering the classes, in the style of VehicleTest",
+    "Root package.json test script - extended so npm test compiles and runs the warehouse sources and tests as well as the existing Vehicle ones",
+    "Existing Vehicle code - unchanged"
+  ],
+  "files_likely_touched": [
+    "src/main/java/com/neversoft/warehouse/Warehouse.java",
+    "src/main/java/com/neversoft/warehouse/Store.java",
+    "src/main/java/com/neversoft/warehouse/Location.java",
+    "src/main/java/com/neversoft/warehouse/Product.java",
+    "src/main/java/com/neversoft/warehouse/StockItem.java",
+    "src/test/java/com/neversoft/warehouse/*.java",
+    "package.json"
+  ],
+  "depends_on_issues": [],
+  "assumptions": [
+    "\"Stores\" means sub-areas or sections within a warehouse, not retail stores.",
+    "\"Locations\" are physical storage positions, such as aisle/rack/shelf/bin, belonging to a store.",
+    "\"Stock\" means a quantity of a product at a location.",
+    "Target is Java 25, matching the existing --release 25 build script.",
+    "Package name com.neversoft.warehouse, following com.neversoft.vehicle.",
+    "Plain long ids and int quantities are acceptable, as with Vehicle; there is no persistence, so no id generation is needed.",
+    "The request for methods is met by accessors plus a minimal set of domain helpers; no services, repositories or business logic are required.",
+    "Adding tests and extending the package.json test script is in scope, following the issue #1 convention."
+  ],
+  "risks": [
+    {
+      "risk": "Guessed fields and relationships do not match the author's intent",
+      "severity": "medium",
+      "mitigation": "State the assumptions in the PR description; keep the classes simple and the design provisional, as the author invited."
+    },
+    {
+      "risk": "Id-based upward links may be less convenient than object references",
+      "severity": "low",
+      "mitigation": "Easy to change later, and it avoids cycles in equals/hashCode/toString."
+    },
+    {
+      "risk": "Extending the hardcoded npm test script could break the existing Vehicle test",
+      "severity": "low",
+      "mitigation": "Keep the Vehicle compile and run steps intact; verify that both the Vehicle and warehouse tests pass."
+    },
+    {
+      "risk": "-Xlint:all -Werror turns lint warnings into build failures",
+      "severity": "low",
+      "mitigation": "Avoid raw types and unchecked code, and run npm test before finishing."
+    },
+    {
+      "risk": "Mutable lists exposed through getters allow external modification",
+      "severity": "low",
+      "mitigation": "Accept for a POJO and be consistent with the plain POJO request; document it."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "Public classes Warehouse, Store, Location, Product and StockItem exist in package com.neversoft.warehouse under src/main/java/com/neversoft/warehouse/, with the package declaration matching the directory."
+    },
+    {
+      "id": "AC-2",
+      "criterion": "Each class is a plain POJO with private fields, a no-arg constructor, an all-args constructor, and a getter and setter for every field; there are no annotations or external dependencies."
+    },
+    {
+      "id": "AC-3",
+      "criterion": "Each class overrides equals, hashCode and toString consistently over its fields; these are null-safe and do not recurse infinitely."
+    },
+    {
+      "id": "AC-4",
+      "criterion": "A Warehouse holds a list of Stores and a Store holds a list of Locations; child lists are never null on a default-constructed object."
+    },
+    {
+      "id": "AC-5",
+      "criterion": "StockItem associates a location with a Product and a quantity; the model allows one location to hold several products and one product to be stocked in several locations."
+    },
+    {
+      "id": "AC-6",
+      "criterion": "Quantity changes on StockItem (add and remove) reject negative resulting quantities and invalid arguments, with a documented exception."
+    },
+    {
+      "id": "AC-7",
+      "criterion": "Tests for the new classes exist and pass via npm test, and the existing VehicleTest still passes."
+    },
+    {
+      "id": "AC-8",
+      "criterion": "All sources compile with javac --release 25 -Xlint:all -Werror with no warnings."
+    },
+    {
+      "id": "AC-9",
+      "criterion": "Apart from the package.json test script, no existing file is modified."
+    }
+  ],
+  "open_questions": [],
+  "complexity": "S"
+}

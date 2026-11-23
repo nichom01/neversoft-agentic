@@ -1,0 +1,110 @@
+{
+  "issue": 4,
+  "changes": [
+    {
+      "path": "src/main/java/com/neversoft/customer/Customer.java",
+      "action": "create",
+      "description": "Public POJO in package com.neversoft.customer following the Vehicle.java style. Private fields id (long), name, email, phone (String). No-arg and all-fields constructors, getter/setter per field, equals/hashCode/toString using java.util.Objects. No reference to orders.",
+      "symbols": ["Customer", "Customer()", "Customer(long, String, String, String)", "getId/setId", "getName/setName", "getEmail/setEmail", "getPhone/setPhone", "equals", "hashCode", "toString"],
+      "covers": ["AC-3", "AC-5", "AC-6"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/sales/SalesOrderLine.java",
+      "action": "create",
+      "description": "Public child POJO in package com.neversoft.sales. Private fields id (long), itemCode, description (String), quantity (int), unitPrice and lineAmount (BigDecimal). lineAmount is a plain stored field, not computed. No back-reference to SalesOrder, so equals/hashCode/toString cannot recurse. No-arg and all-fields constructors, getters/setters, equals/hashCode/toString.",
+      "symbols": ["SalesOrderLine", "SalesOrderLine()", "SalesOrderLine(long, String, String, int, BigDecimal, BigDecimal)", "getId/setId", "getItemCode/setItemCode", "getDescription/setDescription", "getQuantity/setQuantity", "getUnitPrice/setUnitPrice", "getLineAmount/setLineAmount", "equals", "hashCode", "toString"],
+      "covers": ["AC-2", "AC-5", "AC-6"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/sales/SalesOrder.java",
+      "action": "create",
+      "description": "Public parent POJO in package com.neversoft.sales. Private fields id (long), orderDate (LocalDate), status (String), customer (Customer), lines (List<SalesOrderLine>, initialised to an empty ArrayList, never null). No-arg and all-fields constructors. setCustomer associates a Customer. getLines returns an unmodifiable view; setLines copies the input (null -> empty); addLine rejects null with NPE; removeLine returns boolean. equals/hashCode/toString cover all five fields; no recursion because children and customer hold no reference to SalesOrder.",
+      "symbols": ["SalesOrder", "SalesOrder()", "SalesOrder(long, LocalDate, String, Customer, List)", "getId/setId", "getOrderDate/setOrderDate", "getStatus/setStatus", "getCustomer/setCustomer", "getLines", "setLines", "addLine", "removeLine", "equals", "hashCode", "toString"],
+      "covers": ["AC-1", "AC-4", "AC-5", "AC-6"]
+    },
+    {
+      "path": "src/test/java/com/neversoft/sales/SalesOrderTest.java",
+      "action": "create",
+      "description": "Dependency-free test harness in the style of VehicleTest.java (main, test, check, eq helpers, exit 1 on failure) covering all three classes. Javadoc gives the javac --release 25 -Xlint:all -Werror and java run commands. Not wired into package.json, to keep AC-7.",
+      "symbols": ["SalesOrderTest", "main", "test", "check", "eq"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6"]
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "Customer",
+      "signature": "public class Customer { Customer(); Customer(long id, String name, String email, String phone); long getId(); void setId(long); String getName(); void setName(String); String getEmail(); void setEmail(String); String getPhone(); void setPhone(String); boolean equals(Object); int hashCode(); String toString(); }",
+      "notes": "Package com.neversoft.customer."
+    },
+    {
+      "name": "SalesOrderLine",
+      "signature": "public class SalesOrderLine { SalesOrderLine(); SalesOrderLine(long id, String itemCode, String description, int quantity, BigDecimal unitPrice, BigDecimal lineAmount); getters/setters for id, itemCode, description, quantity, unitPrice, lineAmount; boolean equals(Object); int hashCode(); String toString(); }",
+      "notes": "Package com.neversoft.sales. BigDecimal.equals is scale-sensitive; accepted."
+    },
+    {
+      "name": "SalesOrder",
+      "signature": "public class SalesOrder { SalesOrder(); SalesOrder(long id, LocalDate orderDate, String status, Customer customer, List<SalesOrderLine> lines); getters/setters for id, orderDate, status, customer; List<SalesOrderLine> getLines(); void setLines(List<SalesOrderLine>); void addLine(SalesOrderLine); boolean removeLine(SalesOrderLine); boolean equals(Object); int hashCode(); String toString(); }",
+      "notes": "Package com.neversoft.sales. getLines is an unmodifiable view and never null; setLines and the constructor copy the input list; addLine(null) throws NullPointerException."
+    }
+  ],
+  "data_changes": [],
+  "test_approach": [
+    {
+      "layer": "smoke",
+      "what": "Compile the three main classes and SalesOrderLine/SalesOrder/Customer test with javac --release 25 -Xlint:all -Werror using only the JDK (no classpath); expect no warnings or errors, then run SalesOrderTest and expect exit 0.",
+      "covers": ["AC-6"]
+    },
+    {
+      "layer": "smoke",
+      "what": "git status / git diff --name-only shows only new files under src/main/java/com/neversoft/{sales,customer}, src/test/java/com/neversoft/sales and docs/bob/4; no existing file is modified.",
+      "covers": ["AC-7"]
+    },
+    {
+      "layer": "bdd",
+      "what": "Given a Customer, two SalesOrderLines and a new SalesOrder, when the customer is set and both lines added, then getCustomer returns it and getLines holds both lines in insertion order.",
+      "covers": ["AC-1", "AC-4"]
+    },
+    {
+      "layer": "bdd",
+      "what": "Given an order with two lines, when one line is removed, removeLine returns true and one line remains; removing an absent line returns false.",
+      "covers": ["AC-4"]
+    },
+    {
+      "layer": "bdd",
+      "what": "Given objects built with the all-fields constructors, every getter on all three classes returns the value passed in.",
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-5"]
+    },
+    {
+      "layer": "component",
+      "what": "Object graph SalesOrder -> Customer + SalesOrderLines: identical graphs are equal with equal hashCode; changing one customer or line field makes them unequal; toString terminates and contains the customer name and each line's item code.",
+      "covers": ["AC-4", "AC-5"]
+    },
+    {
+      "layer": "component",
+      "what": "getLines() is unmodifiable (add throws UnsupportedOperationException); addLine(null) throws NullPointerException; mutating the list passed to setLines/constructor afterwards does not affect the order; setLines(null) and the no-arg constructor give an empty non-null list.",
+      "covers": ["AC-4"]
+    },
+    {
+      "layer": "unit",
+      "what": "Reflection per class: public, superclass Object, no interfaces, declared fields with specified names/types (SalesOrder 5, SalesOrderLine 6, Customer 4), all private and non-static, public no-arg constructor; SalesOrderLine has no field of type SalesOrder.",
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-5"]
+    },
+    {
+      "layer": "unit",
+      "what": "No-arg defaults (numbers 0, references null, SalesOrder lines empty) and setter/getter round trip per field including null for reference fields.",
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-5"]
+    },
+    {
+      "layer": "unit",
+      "what": "equals contract (reflexive, symmetric, false for null/other type), equals false when any single field differs per class, hashCode consistent with equals, null-safe equals/hashCode/toString on default instances.",
+      "covers": ["AC-5"]
+    },
+    {
+      "layer": "unit",
+      "what": "toString of each class contains every field value.",
+      "covers": ["AC-5"]
+    }
+  ],
+  "rollout": "Purely additive. Order: create Customer.java, SalesOrderLine.java, SalesOrder.java (depends on both), then SalesOrderTest.java; run the javac/java commands from its Javadoc; confirm git status shows only new files. No feature flags. package.json is not touched, so merge order relative to #3 does not matter.",
+  "open_questions": []
+}
