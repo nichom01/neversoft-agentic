@@ -2,7 +2,15 @@
   "name": "neversoft-agentic",
   "private": true,
   "version": "0.0.0",
+  "workspaces": [
+    "tools/warehouse-server",
+    "tools/warehouse-ui"
+  ],
   "scripts": {
-    "test": "OUT=$(mktemp -d) && javac --release 25 -Xlint:all -Werror -d \"$OUT\" src/main/java/com/neversoft/vehicle/Vehicle.java src/test/java/com/neversoft/vehicle/VehicleTest.java && java -cp \"$OUT\" com.neversoft.vehicle.VehicleTest"
+    "test": "OUT=$(mktemp -d) && javac --release 25 -Xlint:all -Werror -d \"$OUT\" src/main/java/com/neversoft/vehicle/Vehicle.java src/test/java/com/neversoft/vehicle/VehicleTest.java && java -cp \"$OUT\" com.neversoft.vehicle.VehicleTest",
+    "test:warehouse": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w @warehouse/ui",
+    "start": "npm run build && npm run start -w @warehouse/server"
   }
 }
