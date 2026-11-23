@@ -1,0 +1,278 @@
+{
+  "issue": 3,
+  "tests": [
+    {
+      "id": "T-1",
+      "layer": "smoke",
+      "title": "npm test compiles everything warning-free and runs both test classes",
+      "target": "npm test at repo root (scripts.test in package.json)",
+      "rationale": "The single end-to-end command the repo uses. It proves in one run that all five sources and both test classes compile under -Xlint:all -Werror, that VehicleTest still runs after the script was extended, and that WarehouseTest passes. No lower layer can see the combined script. Expect exit code 0 and '0 failed' from both VehicleTest and WarehouseTest.",
+      "traces_to": [
+        "AC-7",
+        "AC-8",
+        "risk: Extending the hardcoded `npm test` script could break the existing Vehicle test",
+        "risk: `-Xlint:all -Werror` turns lint warnings into build failures"
+      ]
+    },
+    {
+      "id": "T-2",
+      "layer": "smoke",
+      "title": "Change set modifies only package.json among existing files",
+      "target": "git diff --name-status <base>..HEAD at repo root; node JSON.parse of package.json",
+      "rationale": "AC-9 is a property of the repository change set, not code behaviour, so only a git check can prove it. Expect M package.json, A entries for the five src/main/java/com/neversoft/warehouse/*.java files and WarehouseTest.java (plus docs/bob/3/), and no other M or D; Vehicle.java and VehicleTest.java must not appear. A JSON.parse check and a diff of package.json confirm only scripts.test changed.",
+      "traces_to": [
+        "AC-9",
+        "AC-1"
+      ]
+    },
+    {
+      "id": "T-3",
+      "layer": "smoke",
+      "title": "Class files land in the declared package path",
+      "target": "OUT=$(mktemp -d); javac --release 25 -Xlint:all -Werror -d \"$OUT\" src/main/java/com/neversoft/warehouse/*.java; test -f \"$OUT/com/neversoft/warehouse/{Warehouse,Store,Location,Product,StockItem}.class\"",
+      "rationale": "javac does not fail when a package declaration disagrees with the directory of an explicitly listed file; it writes the class to a different output path. Only checking the compiled output proves the package matches the directory. This is a build-output property that no Java test can observe.",
+      "traces_to": [
+        "AC-1",
+        "AC-8"
+      ]
+    },
+    {
+      "id": "T-4",
+      "layer": "bdd",
+      "title": "Developer can load each warehouse class by its fully qualified name",
+      "gherkin": "Given the warehouse sources have been compiled\nWhen each of Warehouse, Store, Location, Product and StockItem is loaded by its fully qualified name in com.neversoft.warehouse\nThen every class is found, is public, and reports package com.neversoft.warehouse",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-1)",
+      "rationale": "A developer's first use of the model is to find the classes; reflection loading is the plain-Java equivalent. The directory check itself is T-3.",
+      "traces_to": [
+        "AC-1"
+      ]
+    },
+    {
+      "id": "T-5",
+      "layer": "bdd",
+      "title": "Developer builds each class with the no-arg constructor and with the all-args constructor",
+      "gherkin": "Given a new Warehouse, Store, Location, Product and StockItem built with no arguments\nWhen values are set through their setters\nThen each getter returns the value that was set\n\nGiven values for every field of a class\nWhen the all-args constructor is called\nThen every getter returns the value passed in, including a null capacity on Location",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-3)",
+      "rationale": "The caller-facing story for AC-2. The detailed shape checks (private fields, no annotations, per-field independence) are unit tests T-12 to T-14.",
+      "traces_to": [
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-6",
+      "layer": "bdd",
+      "title": "Equal objects are equal, print every field, and differ when a field differs",
+      "gherkin": "Given two Warehouse trees built from the same values\nWhen they are compared and printed\nThen they are equal, have the same hashCode, and toString contains every field value\n\nGiven one of them has a different nested Location code\nWhen they are compared again\nThen they are not equal",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-6, W-9)",
+      "rationale": "Shows the equals/hashCode/toString behaviour a caller sees on the root object. Per-class contract and per-field mutation detail is covered by unit tests T-17 to T-21.",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-7",
+      "layer": "bdd",
+      "title": "A new Warehouse or Store never has null child lists",
+      "gherkin": "Given a default-constructed Warehouse and a default-constructed Store\nWhen getStores() and getLocations() are called\nThen both return an empty, non-null list\n\nGiven a Store is added to the Warehouse and a Location is added to the Store\nWhen the lists are read back\nThen the Warehouse holds that Store and the Store holds that Location",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-4, W-5)",
+      "rationale": "The caller's view of AC-4. The null-argument and ordering branches are covered at unit level by T-15 and T-16.",
+      "traces_to": [
+        "AC-4"
+      ]
+    },
+    {
+      "id": "T-8",
+      "layer": "bdd",
+      "title": "One location holds several products and one product sits in several locations",
+      "gherkin": "Given products P1 and P2, and locations with ids 10 and 20\nWhen stock items are created for (10, P1, 5), (10, P2, 3) and (20, P1, 7)\nThen location 10 has two stock items with different products\nAnd product P1 appears in stock items for locations 10 and 20\nAnd each stock item reports its own locationId, product and quantity",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-10)",
+      "rationale": "Proves the many-to-many relationship as the author would describe it. It is a statement about the model design, so it is written at scenario level.",
+      "traces_to": [
+        "AC-5"
+      ]
+    },
+    {
+      "id": "T-9",
+      "layer": "bdd",
+      "title": "Adding and removing stock, and rejected quantity changes",
+      "gherkin": "Given a StockItem holding quantity 5\nWhen 3 is added\nThen the quantity is 8\nWhen 8 is removed\nThen the quantity is 0\n\nGiven a StockItem holding quantity 5\nWhen removing 6, adding 0, or removing -1 is attempted\nThen an IllegalArgumentException is thrown each time\nAnd the quantity is still 5",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-11, W-12)",
+      "rationale": "AC-6 is a user-visible rule (stock cannot go negative), so a scenario shows it. The full boundary list is T-23 and T-24.",
+      "traces_to": [
+        "AC-6"
+      ]
+    },
+    {
+      "id": "T-10",
+      "layer": "component",
+      "title": "A full Warehouse tree builds, compares and prints without recursion",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-9; component section)",
+      "rationale": "The boundary between Warehouse, Store, Location and StockItem/Product, where equals, hashCode and toString call into children. Cycles would only show when the classes are composed. Build a Warehouse with two Stores, each with Locations, and a StockItem for a location id. Call toString, hashCode and equals on the root, assert each returns (no StackOverflowError), toString contains the nested store name and location code, and two independently built identical trees are equal.",
+      "traces_to": [
+        "AC-3",
+        "AC-4"
+      ]
+    },
+    {
+      "id": "T-11",
+      "layer": "component",
+      "title": "Stock can be resolved through the tree by location id and adjusted",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (component section)",
+      "rationale": "The Location to StockItem link is by id, not by object reference, so the risk is in composing the two: Location ids must line up with StockItem.locationId. Build a tree with locations 10 and 20 and a list of StockItems, filter by Location.getId(), assert location 10 resolves to two items and 20 to one, call removeQuantity on one found item, and assert only that item changed and an over-removal throws and leaves the quantity as it was.",
+      "traces_to": [
+        "AC-5",
+        "AC-6"
+      ]
+    },
+    {
+      "id": "T-12",
+      "layer": "unit",
+      "title": "Class shape: public no-arg constructor, private instance fields, no annotations, no interfaces",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-2)",
+      "rationale": "Pure reflection on one class at a time, like VehicleTest.t7/t8/t9. For each of the five classes assert a public no-arg constructor, declared field count and types (Warehouse 4, Store 4, Location 4, Product 5, StockItem 3), every field private and non-static, superclass Object, zero interfaces, no annotations on class, fields or constructors, and a public getter and setter for every field.",
+      "traces_to": [
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-13",
+      "layer": "unit",
+      "title": "All-args constructor assigns every field with distinct values",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-3)",
+      "rationale": "A constructor that swaps two same-typed fields (name/address, sku/name) is a logic bug, caught by using a distinct value per field. Include Location with capacity null and 0, and unusual values (negative ids, empty strings) that must be stored as given because constructors do not validate.",
+      "traces_to": [
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-14",
+      "layer": "unit",
+      "title": "Getters return what setters stored, and each setter touches only its own field",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-3)",
+      "rationale": "A per-method property of each class, like VehicleTest.t11. Cover boundary values (Long.MAX_VALUE ids, Integer.MAX_VALUE quantity, null strings, null capacity, null product) and check after one setter call that every other getter is unchanged.",
+      "traces_to": [
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-15",
+      "layer": "unit",
+      "title": "Null lists become empty lists in the constructors and the list setters",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-4)",
+      "rationale": "A branch in four places: the Warehouse and Store all-args constructors and setStores/setLocations, each a separate code path. Assert new Warehouse(1,\"n\",\"a\",null).getStores() and new Store(1,\"n\",2,null).getLocations() are empty and non-null, the same after setStores(null)/setLocations(null) on a populated object, and that a non-null list is accepted.",
+      "traces_to": [
+        "AC-4"
+      ]
+    },
+    {
+      "id": "T-16",
+      "layer": "unit",
+      "title": "addStore and addLocation append in order and reject null",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-5)",
+      "rationale": "Simple branch logic. Add three children and check order and size. Assert addStore(null) and addLocation(null) throw NullPointerException and leave the list size unchanged, and that adding a child does not change its parent id (Store.warehouseId, Location.storeId), as the low-level plan specifies.",
+      "traces_to": [
+        "AC-4"
+      ]
+    },
+    {
+      "id": "T-17",
+      "layer": "unit",
+      "title": "equals contract holds for all five classes",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-6)",
+      "rationale": "Contract checks per class, like VehicleTest.t12. For each class assert reflexive, symmetric, equal copy is equal, not equal to null, a String, a plain Object, or an object of another warehouse class built from similar values (checks the getClass() use).",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-18",
+      "layer": "unit",
+      "title": "equals is false when any single field differs, in both directions",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-7)",
+      "rationale": "One defect per field, each detected separately, as VehicleTest.t13 does. Use a List<Consumer<T>> of mutations per class: Warehouse (id, name, address, a changed store, an extra store), Store (id, name, warehouseId, locations), Location (id, code, storeId, capacity), Product (five fields), StockItem (locationId, product, a changed product field, quantity). Assert the mutation count covers the field count so a new field cannot be added without a test.",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-19",
+      "layer": "unit",
+      "title": "hashCode is consistent with equals and stable",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-6)",
+      "rationale": "Equal objects must share a hash, a per-class property like VehicleTest.t15. Assert equal hash for equal copies of all five classes, stable across repeated calls, restored after mutate-and-revert, and equal for equal child lists built separately.",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-20",
+      "layer": "unit",
+      "title": "Null-safe equals, hashCode and toString",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-8)",
+      "rationale": "Each null case takes its own branch inside Objects.equals/Objects.hash and toString, as VehicleTest.t14 covers for Vehicle. Default-constructed instances of all five classes must be equal with equal hashes and none of the three methods may throw. Also check null strings against populated values, StockItem with a null Product, Location with null capacity and null code, and empty lists. A null-field object must not equal a populated one in either direction.",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-21",
+      "layer": "unit",
+      "title": "toString of each class contains every field value",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-9)",
+      "rationale": "A missing field in toString is a per-class string-building bug, as in VehicleTest.t16. Use distinctive values per field (for example id 123456, name NameVal) and assert each appears. For Warehouse and Store assert a child's identifying value is included; for StockItem assert the product's name appears.",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-22",
+      "layer": "unit",
+      "title": "StockItem defaults, and setQuantity does not validate",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-2, W-3)",
+      "rationale": "The low-level plan fixes a design decision: only addQuantity and removeQuantity validate; the no-arg constructor leaves product null and quantity 0 and setQuantity is plain. A test pins this so nobody adds validation to one path only. Assert the defaults, that setQuantity(-3) stores -3, and that the all-args constructor with a negative quantity stores it as given.",
+      "traces_to": [
+        "AC-6",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-23",
+      "layer": "unit",
+      "title": "addQuantity and removeQuantity happy paths and exact boundaries",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-11)",
+      "rationale": "Arithmetic branches in one method. Assert 5 + 3 = 8, 8 - 8 = 0 (removal to exactly zero allowed), 0 + 1 = 1, and Integer.MAX_VALUE - 1 plus 1 = Integer.MAX_VALUE (largest allowed add). Also assert a successful call changes only quantity, not locationId or product.",
+      "traces_to": [
+        "AC-6"
+      ]
+    },
+    {
+      "id": "T-24",
+      "layer": "unit",
+      "title": "Invalid quantity arguments throw IllegalArgumentException and leave state unchanged",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (W-12)",
+      "rationale": "Each rejection is its own branch: amount <= 0 (add and remove), overflow on add, and amount > quantity on remove. Test each separately: addQuantity(0), addQuantity(-1), addQuantity(Integer.MIN_VALUE), removeQuantity(0), removeQuantity(-1), removeQuantity(quantity + 1), an add of 1 to Integer.MAX_VALUE and of Integer.MAX_VALUE to 1. Assert the exact exception type is IllegalArgumentException (not ArithmeticException) and quantity, locationId and product are unchanged.",
+      "traces_to": [
+        "AC-6"
+      ]
+    },
+    {
+      "id": "T-25",
+      "layer": "unit",
+      "title": "Child lists are stored by reference (accepted behaviour is pinned)",
+      "target": "src/test/java/com/neversoft/warehouse/WarehouseTest.java (unit section)",
+      "rationale": "The high-level plan accepts that mutable lists are exposed through getters. A test documents this so a later change to defensive copies is a deliberate decision. Assert getStores() returns the list passed to the constructor and that adding to it directly is visible through warehouse.getStores(); do the same for Store.getLocations().",
+      "traces_to": [
+        "risk: Mutable lists exposed through getters allow external modification"
+      ]
+    }
+  ],
+  "gaps": [
+    "AC-7, AC-8 and AC-9 have no BDD, component or unit test: they are build and change-set properties and are proven by T-1 to T-3 at smoke only.",
+    "AC-6 requires a 'documented exception'. Javadoc @throws text cannot be checked by a runtime test and -Xlint:all does not check it. The exception type and unchanged state are tested (T-9, T-24); the Javadoc itself is left to code review.",
+    "AC-2 'no external dependencies': T-12 checks no annotations and no interfaces, and T-1 compiles with no classpath so any third-party import would fail to compile. There is no separate import-scanning test.",
+    "Risk 'Guessed fields and relationships do not match the author's intent': a product-fit risk, not testable by code. The mitigation is the PR description and review.",
+    "Risk 'Id-based upward links may be less convenient than object references': a design trade-off, not a behaviour. T-11 shows the id link works, and nothing more is tested.",
+    "No test covers Vehicle behaviour directly. The unchanged VehicleTest run inside T-1 is the regression check.",
+    "No concurrency, serialization or persistence tests, because the POJOs have none (out of scope per the high-level plan)."
+  ]
+}
