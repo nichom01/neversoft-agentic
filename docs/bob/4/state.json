@@ -1,0 +1,15 @@
+{
+  "issue": 4,
+  "pipelineVersion": 2,
+  "history": [
+    {
+      "stage": "hlp",
+      "runId": "048def0d",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-23T22:15:14.763Z",
+      "cost": 0.313372,
+      "taskId": "ed5db388cb8a2f95b0b4e031d15e0fc5",
+      "revision": false
+    }
+  ]
+}
