@@ -46,6 +46,15 @@
       "cost": 0.6839379999999999,
       "taskId": "3d3b2ee50017418594b4cfff023ea796",
       "revision": false
+    },
+    {
+      "stage": "changes",
+      "runId": "2ef6aaa7",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-23T22:32:50.757Z",
+      "cost": 0.7390000000000001,
+      "taskId": "9927339208355502b8d09030b7285112",
+      "revision": false
     }
   ],
   "prUrl": "https://github.com/nichom01/neversoft-agentic/pull/9",
