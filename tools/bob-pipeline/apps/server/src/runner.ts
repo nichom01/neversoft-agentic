@@ -82,6 +82,11 @@ export async function executeRun(svc: Services, runId: string): Promise<string |
     // 6. Bob, with output validation and retries.
     let taskId = resumeTaskId;
     let totalCost = 0;
+    // Bob reports a task's cost cumulatively, including when a task is resumed,
+    // so keep the latest figure per task and add them up.
+    const costByTask = new Map<string, number>();
+    let untrackedCost = 0;
+    const seen = new Set<string>();
     const bobOnce = async (text: string) => {
       log("info", taskId ? `Running Bob (resuming task ${taskId})` : `Running Bob in mode "${stage.mode}"`);
       const r = await runBob(p, {
@@ -92,13 +97,16 @@ export async function executeRun(svc: Services, runId: string): Promise<string |
         prompt: text,
         resumeTaskId: taskId,
         onEvent: (s) => log("bob", s),
+        seen,
       });
       if (r.taskId) {
         taskId = r.taskId;
         db.updateRun(runId, { taskId: r.taskId });
       }
       if (r.cost !== null) {
-        totalCost += r.cost;
+        if (r.taskId) costByTask.set(r.taskId, Math.max(costByTask.get(r.taskId) ?? 0, r.cost));
+        else untrackedCost += r.cost;
+        totalCost = untrackedCost + [...costByTask.values()].reduce((a, b) => a + b, 0);
         db.updateRun(runId, { cost: totalCost });
       }
       if (r.timedOut) throw new Error("Bob timed out");

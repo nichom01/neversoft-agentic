@@ -10,6 +10,8 @@ export interface BobRunOptions {
   resumeTaskId?: string | null;
   onEvent: (summary: string) => void;
   timeoutMs?: number;
+  /** Tool-call ids already logged in this run; resumed tasks replay them. */
+  seen?: Set<string>;
 }
 
 export interface BobRunResult {
@@ -44,6 +46,18 @@ export async function runBob(p: Pipeline, o: BobRunOptions): Promise<BobRunResul
 
   let taskId: string | null = null;
   let cost: number | null = null;
+  // On --resume, Bob replays the task's earlier events first. Those carry
+  // timestamps from before this invocation, so they are skipped.
+  const startedAt = Date.now() - 2000;
+  // Assistant text streams in small chunks; join them into readable lines.
+  let text = "";
+  let flushTimer: NodeJS.Timeout | undefined;
+  const flush = () => {
+    if (flushTimer) clearTimeout(flushTimer);
+    flushTimer = undefined;
+    if (text.trim()) o.onEvent(`[bob] ${text.trim()}`);
+    text = "";
+  };
 
   const r = await exec(p.bob.bin, args, {
     cwd: o.workspace,
@@ -52,18 +66,44 @@ export async function runBob(p: Pipeline, o: BobRunOptions): Promise<BobRunResul
     timeoutMs: o.timeoutMs ?? 60 * 60 * 1000,
     onLine: (line, stream) => {
       if (!line.trim()) return;
-      if (stream === "stderr") return o.onEvent(`stderr: ${line}`);
+      if (stream === "stderr") {
+        flush();
+        return o.onEvent(`stderr: ${line}`);
+      }
       const ev = tryJson(line);
-      if (!ev) return o.onEvent(line);
+      if (!ev) {
+        flush();
+        return o.onEvent(line);
+      }
       taskId = taskId ?? findString(ev, ["task_id", "taskId", "session_id", "sessionId"]);
-      const c = findNumber(ev, ["session_costs", "total_cost", "totalCost", "cost", "bobcoins", "cost_bobcoins"]);
-      if (c !== null) cost = c;
-      o.onEvent(summarise(ev));
+      const ts = typeof ev.timestamp === "string" ? Date.parse(ev.timestamp) : NaN;
+      if (!Number.isNaN(ts) && ts < startedAt) return; // replayed history
+      // Resumed tasks replay earlier tool calls (with fresh timestamps); skip ids already logged.
+      const toolId = ev.type === "tool_use" || ev.type === "tool_result" ? findString(ev, ["tool_id", "toolId", "id"]) : null;
+      if (toolId && o.seen) {
+        const key = `${String(ev.type)}:${toolId}`;
+        if (o.seen.has(key)) return;
+        o.seen.add(key);
+      }
+      if (ev.type === "result") {
+        const c = findNumber(ev, ["session_costs", "total_cost", "totalCost", "cost", "bobcoins", "cost_bobcoins"]);
+        if (c !== null) cost = c;
+      }
+      if (ev.type === "message" && ev.role === "assistant") {
+        text += pickText(ev.content) ?? pickText(ev.text) ?? "";
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = setTimeout(flush, 1500);
+        return;
+      }
+      flush();
+      const summary = summarise(ev);
+      if (summary) o.onEvent(summary);
     },
   }).catch((err: NodeJS.ErrnoException) => {
     if (err.code === "ENOENT") throw new Error(`Bob Shell not found ("${p.bob.bin}"). Install it or set bob.bin in pipeline.yaml.`);
     throw err;
   });
+  flush();
 
   return {
     exitCode: r.code,
@@ -109,23 +149,40 @@ function findNumber(v: unknown, keys: string[]): number | null {
   return found;
 }
 
-/** One readable line per event for the live log. */
-function summarise(ev: Record<string, unknown>): string {
-  const type = String(ev.type ?? ev.event ?? "event") + (typeof ev.role === "string" ? `:${ev.role}` : "");
-  if (ev.type === "result") {
-    const cost = findNumber(ev, ["session_costs", "total_cost", "cost"]);
+/** One readable line per event for the live log (null = don't log). */
+function summarise(ev: Record<string, unknown>): string | null {
+  const type = String(ev.type ?? ev.event ?? "event");
+  const clip = (t: string, n = 300) => (t.length > n ? t.slice(0, n) + "…" : t);
+  if (type === "message" && ev.role === "user") {
+    const t = pickText(ev.content) ?? "";
+    return `[prompt] ${clip(t.split("\n")[0], 160)} (${t.length} chars)`;
+  }
+  if (type === "tool_use") {
+    const tool = findString(ev, ["tool", "tool_name", "toolName", "name"]) ?? "tool";
+    const target = findString(ev, ["path", "file", "command", "regex", "query", "url"]);
+    return `[tool] ${tool}${target ? ` ${clip(target, 200)}` : ""}`;
+  }
+  if (type === "tool_result") {
+    if (ev.status === "error") {
+      const msg = findString(ev, ["message", "error"]) ?? "error";
+      return `[tool error] ${clip(msg.replace(/\s+/g, " "), 400)}`;
+    }
+    const out = pickText(ev.output) ?? findString(ev, ["output"]) ?? "";
+    return `[tool ok] ${clip(out.split("\n")[0], 160)}`;
+  }
+  if (type === "result") {
+    const c = findNumber(ev, ["session_costs", "total_cost", "cost"]);
     const ms = findNumber(ev, ["duration_ms"]);
     const tools = findNumber(ev, ["tool_calls"]);
-    return `[result] ${String(ev.status ?? "done")}` +
-      (cost !== null ? ` · cost ${cost}` : "") +
+    return (
+      `[result] ${String(ev.status ?? "done")}` +
+      (c !== null ? ` · cost ${c.toFixed(3)}` : "") +
       (ms !== null ? ` · ${(ms / 1000).toFixed(1)}s` : "") +
-      (tools !== null ? ` · ${tools} tool calls` : "");
+      (tools !== null ? ` · ${tools} tool calls` : "")
+    );
   }
-  const text =
-    pickText(ev.text) ?? pickText(ev.content) ?? pickText(ev.message) ?? pickText(ev.delta) ?? pickText(ev.result);
-  const tool = findString(ev, ["tool", "tool_name", "toolName", "name"]);
-  const body = text ?? (tool ? `tool: ${tool}` : JSON.stringify(ev));
-  return `[${type}] ${body.length > 2000 ? body.slice(0, 2000) + "…" : body}`;
+  const body = pickText(ev.text) ?? pickText(ev.content) ?? pickText(ev.message) ?? JSON.stringify(ev);
+  return `[${type}] ${clip(body, 1000)}`;
 }
 
 function pickText(v: unknown): string | null {

@@ -1,7 +1,8 @@
 # Bob custom modes used by tools/bob-pipeline (one per pipeline stage).
 # Per-mode instructions and templates live in .bob/rules-<slug>/.
-# Tool groups follow the Bob custom-mode format; check them against your
-# Bob version's docs if a mode fails to load.
+# Tool groups follow the Bob custom-mode format.
+# fileRegex is matched against the ABSOLUTE path Bob writes to (inside the
+# issue worktree), so patterns must not be anchored with ^ at the repo root.
 
 customModes:
   - slug: hlp-planner
@@ -20,7 +21,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: ^docs/bob/.*\.(md|json)$
+        - fileRegex: '(^|/)docs/bob/.*\.(md|json)$'
           description: Pipeline output files only
 
   - slug: dep-checker
@@ -34,7 +35,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: ^docs/bob/.*\.(md|json)$
+        - fileRegex: '(^|/)docs/bob/.*\.(md|json)$'
           description: Pipeline output files only
 
   - slug: llp-planner
@@ -51,7 +52,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: ^docs/bob/.*\.(md|json)$
+        - fileRegex: '(^|/)docs/bob/.*\.(md|json)$'
           description: Pipeline output files only
 
   - slug: test-planner
@@ -71,7 +72,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: ^docs/bob/.*\.(md|json)$
+        - fileRegex: '(^|/)docs/bob/.*\.(md|json)$'
           description: Pipeline output files only
 
   - slug: implementer
@@ -101,5 +102,5 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: ^docs/bob/.*\.md$
+        - fileRegex: '(^|/)docs/bob/.*\.md$'
           description: Pipeline output files only
