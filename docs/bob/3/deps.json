@@ -1,0 +1,18 @@
+{
+  "issue": 3,
+  "dependencies": [
+    {
+      "issue": 1,
+      "kind": "blocked_by",
+      "reason": "The #3 plan follows the Vehicle POJO conventions from #1 and extends the package.json test script that already names the Vehicle files. #1 is marked done and its output is present in this tree, so the dependency is already satisfied.",
+      "shared": [
+        "src/main/java/com/neversoft/vehicle/Vehicle.java",
+        "src/test/java/com/neversoft/vehicle/VehicleTest.java",
+        "package.json"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "conflicts": [],
+  "recommended_order": [1, 3]
+}
