@@ -30,7 +30,7 @@
   "assumptions": [
     "\"Mojo\" is a typo/variant of \"POJO\" (plain old Java object).",
     "No Java code, build file or package convention exists, so the package name (e.g. com.neversoft.vehicle) and src/main/java layout are chosen by us.",
-    "Target Java version is a current LTS (17 or 21); no language features beyond Java 8 are required.",
+    "Target Java version is Java 25 (per author feedback).",
     "Field list is provisional and will be revised in a follow-up.",
     "No tests are required for a plain data class in this issue."
   ],
@@ -82,9 +82,6 @@
       "criterion": "No existing files in the repository are modified."
     }
   ],
-  "open_questions": [
-    "Is \"mojo\" intended to mean POJO, or a Maven plugin Mojo?",
-    "Preferred package name and Java version?"
-  ],
+  "open_questions": [],
   "complexity": "S"
 }

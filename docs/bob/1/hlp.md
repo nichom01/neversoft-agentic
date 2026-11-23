@@ -29,7 +29,7 @@ Create one `Vehicle.java` containing a simple POJO: private fields, a no-arg con
 ## Assumptions
 - "Mojo" is a typo/variant of "POJO" (plain old Java object).
 - No Java code, build file or package convention exists, so the package name (e.g. `com.neversoft.vehicle`) and `src/main/java` layout are chosen by us.
-- Target Java version is a current LTS (17 or 21); no language features beyond Java 8 are required.
+- Target Java version is Java 25 (per author feedback).
 - Field list is provisional and will be revised in a follow-up.
 - No tests are required for a plain data class in this issue.
 
@@ -42,8 +42,11 @@ Create one `Vehicle.java` containing a simple POJO: private fields, a no-arg con
 | No build tooling to verify compilation in CI | low | Verify with plain `javac` locally. |
 
 ## Open questions
-- Is "mojo" intended to mean POJO, or a Maven plugin Mojo?
-- Preferred package name and Java version?
+- None. (Previous questions resolved via reviewer feedback: terminology "mojo" is confirmed as POJO-style, and Java 25 is approved).
 
 ## Complexity
 S — one new, self-contained, dependency-free file.
+
+## Revision notes
+- Updated the target Java version from LTS (17 or 21) to Java 25 per author feedback.
+- Closed open questions regarding the terminology "mojo" (proceeding as planned with a POJO-style domain class) and the preferred Java version (Java 25).
