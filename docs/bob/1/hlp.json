@@ -1,0 +1,87 @@
+{
+  "issue": 1,
+  "summary": "Add a single new Java source file defining a Vehicle class as a plain data object (the issue says \"mojo\"; interpreted as POJO) with a sensible initial set of fields. Fields are expected to be revised later.",
+  "approach": "Create one Vehicle.java containing a simple POJO: private fields, a no-arg constructor, an all-args constructor, getters/setters, and equals/hashCode/toString. The repository currently contains no Java code and no build file (only pipeline tooling in TypeScript under tools/bob-pipeline), so the class is added under a conventional Maven/Gradle-style layout (src/main/java/<package>/Vehicle.java) without introducing a build system. Initial fields use best judgement: id, make, model, year, vin, color, mileage. Keeping the class minimal and dependency-free makes later field changes cheap.",
+  "alternatives_considered": [
+    {
+      "option": "Java record",
+      "rejected_because": "The issue asks for a mutable-looking \"mojo/POJO\" and fields are expected to change; a conventional class is more broadly compatible and easier to evolve."
+    },
+    {
+      "option": "Lombok-annotated class",
+      "rejected_because": "Would add a dependency and a build system that do not exist in the repo."
+    },
+    {
+      "option": "Add a full Maven/Gradle project alongside the class",
+      "rejected_because": "Out of scope for the request."
+    },
+    {
+      "option": "Interpret \"mojo\" as a Maven plugin Mojo",
+      "rejected_because": "A Maven Mojo is an executable plugin goal and does not fit \"a vehicle class\"; the vehicle-domain data-object reading is far more plausible."
+    }
+  ],
+  "components": [
+    "Java source tree (new) - new Vehicle domain class; no existing components modified"
+  ],
+  "files_likely_touched": [
+    "src/main/java/com/neversoft/vehicle/Vehicle.java"
+  ],
+  "depends_on_issues": [],
+  "assumptions": [
+    "\"Mojo\" is a typo/variant of \"POJO\" (plain old Java object).",
+    "No Java code, build file or package convention exists, so the package name (e.g. com.neversoft.vehicle) and src/main/java layout are chosen by us.",
+    "Target Java version is Java 25 (per author feedback).",
+    "Field list is provisional and will be revised in a follow-up.",
+    "No tests are required for a plain data class in this issue."
+  ],
+  "risks": [
+    {
+      "risk": "\"Mojo\" actually means a Maven plugin Mojo",
+      "severity": "medium",
+      "mitigation": "Record the interpretation in the PR description and confirm with the issue author."
+    },
+    {
+      "risk": "Chosen package name/location conflicts with later project structure",
+      "severity": "low",
+      "mitigation": "Use a conventional layout; moving a single file is trivial."
+    },
+    {
+      "risk": "Field set does not match the author's needs",
+      "severity": "low",
+      "mitigation": "Explicitly provisional per the issue; keep class simple to change."
+    },
+    {
+      "risk": "No build tooling to verify compilation in CI",
+      "severity": "low",
+      "mitigation": "Verify with plain javac locally."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "A new file Vehicle.java exists under src/main/java/ in a package declared consistently with its directory path."
+    },
+    {
+      "id": "AC-2",
+      "criterion": "Vehicle is a public class with private fields for id, make, model, year, vin, color and mileage, using appropriate types."
+    },
+    {
+      "id": "AC-3",
+      "criterion": "Vehicle provides a no-arg constructor, an all-fields constructor, and getters and setters for every field."
+    },
+    {
+      "id": "AC-4",
+      "criterion": "Vehicle overrides equals, hashCode and toString consistently over its fields."
+    },
+    {
+      "id": "AC-5",
+      "criterion": "The file compiles with a standard JDK (javac) with no external dependencies and no warnings."
+    },
+    {
+      "id": "AC-6",
+      "criterion": "No existing files in the repository are modified."
+    }
+  ],
+  "open_questions": [],
+  "complexity": "S"
+}
