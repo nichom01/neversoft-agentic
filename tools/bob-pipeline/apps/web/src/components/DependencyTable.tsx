@@ -33,21 +33,21 @@ export function DependencyTable({ graph, edges, readOnly }: { graph: DependencyG
     }
   };
 
-  if (!edges.length) return <p className="text-sm text-slate-500">No dependencies found.</p>;
+  if (!edges.length) return <p className="text-sm text-muted">No dependencies found.</p>;
 
   const order = { high: 0, medium: 1, low: 2 };
   const sorted = [...edges].sort((a, b) => Number(a.kind === "overlaps") - Number(b.kind === "overlaps") || order[a.confidence] - order[b.confidence]);
 
   return (
     <div className="space-y-2">
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && <p className="text-sm text-red-700">{err}</p>}
       {!graph.githubDependenciesAvailable && (
         <p className="text-xs text-amber-700">GitHub issue dependencies aren't available on this server, so links can't be recorded there.</p>
       )}
-      <div className="overflow-auto rounded-md border border-slate-200">
+      <div className="overflow-auto rounded-control border border-line bg-surface">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs text-slate-500">
-            <tr>
+          <thead className="bg-canvas text-left text-xs text-muted">
+            <tr className="font-medium">
               <th className="px-3 py-2">Relationship</th>
               <th className="px-3 py-2">Confidence</th>
               <th className="px-3 py-2">Source</th>
@@ -55,20 +55,20 @@ export function DependencyTable({ graph, edges, readOnly }: { graph: DependencyG
               {!readOnly && <th className="px-3 py-2"></th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {sorted.map((e, i) => (
               <tr key={i} className="align-top">
                 <td className="px-3 py-2">
                   <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ background: edgeStyle(e).stroke }} />
                   <IssueLink n={e.from} title={title(e.from)} />
-                  <span className="mx-1 text-slate-500">{e.kind === "overlaps" ? "overlaps" : "is blocked by"}</span>
+                  <span className="mx-1 text-muted">{e.kind === "overlaps" ? "overlaps" : "is blocked by"}</span>
                   <IssueLink n={e.to} title={title(e.to)} />
                 </td>
                 <td className="px-3 py-2 text-xs">{e.confidence}</td>
                 <td className="px-3 py-2 text-xs">{sourceLabel[e.source]}</td>
-                <td className="px-3 py-2 text-xs text-slate-600">
+                <td className="px-3 py-2 text-xs text-muted">
                   {e.reason}
-                  {e.shared.length > 0 && <div className="mt-1 font-mono text-[11px] text-slate-500">{e.shared.slice(0, 6).join(", ")}</div>}
+                  {e.shared.length > 0 && <div className="mt-1 font-mono text-[11px] text-muted">{e.shared.slice(0, 6).join(", ")}</div>}
                 </td>
                 {!readOnly && (
                   <td className="whitespace-nowrap px-3 py-2 text-right">
@@ -103,7 +103,7 @@ export function DependencyTable({ graph, edges, readOnly }: { graph: DependencyG
 
 function IssueLink({ n, title }: { n: number; title: string }) {
   return (
-    <Link to={`/issues/${n}`} className="font-medium hover:underline" title={title}>
+    <Link to={`/issues/${n}`} className="font-medium text-brand-700 hover:underline" title={title}>
       #{n}
     </Link>
   );

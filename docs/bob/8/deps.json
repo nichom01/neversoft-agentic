@@ -1,0 +1,28 @@
+{
+  "issue": 8,
+  "dependencies": [
+    {
+      "issue": 6,
+      "kind": "overlaps",
+      "reason": "#8 restyles the Button/Card/ErrorBox primitives and Tailwind tokens in tools/bob-pipeline/apps/web. #6 plans to copy those primitives into the new tools/warehouse-ui and match the pipeline app's dependency versions (AC-1, AC-4). It will inherit the old or new look depending on which issue merges first. Both also change npm workspace and lockfile state: #8 adds an Inter font package, and #6 registers two new workspace packages. Neither plan needs the other's outcome, so this is not a blocker.",
+      "shared": [
+        "tools/bob-pipeline/apps/web/src/components/ui.tsx",
+        "tools/bob-pipeline/apps/web/package.json",
+        "tools/bob-pipeline/package-lock.json",
+        "tools/bob-pipeline/package.json"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "conflicts": [
+    {
+      "issues": [8, 6],
+      "description": "#8 assumes the pipeline dashboard is the only web front end and restyles only apps/web. #6 adds a second React/Tailwind SPA (tools/warehouse-ui) that should use the same visual primitives as the pipeline app. Its copied primitives will drift from #8's new design unless #6 merges after #8 and copies the restyled versions, or the warehouse UI is restyled in a follow-up. #6 AC-7 forbids modifying existing files, so it cannot pick up the new tokens by editing the pipeline app."
+    },
+    {
+      "issues": [8, 5],
+      "description": "#8 treats the pipeline dashboard as 'the website'. #5 adds sales-orders-ui/ as a new site with minimal plain-CSS styling and no UI library. The author may expect the 'ui styling' request to cover that site too, and #5 as planned will not follow the Chakra Pro look. This is a scope ambiguity, not a file overlap."
+    }
+  ],
+  "recommended_order": [8, 6]
+}

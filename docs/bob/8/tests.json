@@ -1,0 +1,164 @@
+{
+  "issue": 8,
+  "tests": [
+    {
+      "id": "T-1",
+      "layer": "smoke",
+      "title": "Build, typecheck, and font asset bundling verification",
+      "target": "tools/bob-pipeline/apps/web/package.json via npm run typecheck && npm run build -w @bob-pipeline/web",
+      "rationale": "Proves the critical path build succeeds end-to-end after adding @fontsource-variable/inter. Validates that TypeScript compiles with no errors, Vite bundles the production output without warnings, local Inter .woff2 font files are packaged into dist, and no external font CDN endpoints (such as Google Fonts) are referenced.",
+      "traces_to": [
+        "AC-2",
+        "AC-8",
+        "risk: New font dependency introduces supply-chain or licensing concern"
+      ]
+    },
+    {
+      "id": "T-2",
+      "layer": "smoke",
+      "title": "Design token adoption and class-name sweep verification",
+      "target": "tools/bob-pipeline/apps/web/src/ via static grep inspection",
+      "rationale": "Static codebase-wide sweep proving compliance with the token architecture before runtime testing. Verifies that legacy slate-*, indigo-*, and unapproved emerald-* classes are removed (except documented semantic diff/status exceptions), hex colours are confined to DepGraph.tsx and TestPyramidView.tsx, and no outline-none classes bypass focus rings.",
+      "traces_to": [
+        "AC-1",
+        "AC-5",
+        "risk: Hard-coded hex colours in graph/pyramid are missed and look inconsistent",
+        "risk: Chakra UI Pro is proprietary; copying its assets or markup could breach licensing"
+      ]
+    },
+    {
+      "id": "T-3",
+      "layer": "bdd",
+      "title": "Developer views and interacts with the restyled Board page",
+      "gherkin": "Given the pipeline dashboard is running\nWhen a developer navigates to the Board page at \"/\"\nThen the page body displays Inter typography on a canvas background\nAnd the columns, cards, filter pills, and idle section display Chakra-Pro-style neutral surfaces, subtle borders, and teal brand accents\nAnd clicking filter pills and issue links operates with no behaviour changes",
+      "target": "tools/bob-pipeline/apps/web/src/pages/Dashboard.tsx",
+      "rationale": "Acceptance scenario demonstrating the board page fulfills the visual restyle criteria and preserves user filtering and issue navigation workflows without regressions.",
+      "traces_to": [
+        "AC-5",
+        "AC-8",
+        "risk: Wide class-name sweep causes visual regressions (board columns, graph, prose tables)",
+        "risk: Ambiguous target (\"website\", \"style of\") leads to an interpretation the author did not intend"
+      ]
+    },
+    {
+      "id": "T-4",
+      "layer": "bdd",
+      "title": "Developer inspects issue details, pipeline stage views, diffs, and console logs",
+      "gherkin": "Given the pipeline dashboard is running with active and completed issues\nWhen a developer navigates to an Issue detail page at \"/issues/:id\"\nThen the stepper tabs display brand teal for current and completed stages\nAnd the console log view displays dark code-bar header and code-ink text\nAnd action panels, markdown prose, and diff views display consistent neutral styling with clear semantic highlights\nAnd interactive controls including stage switching, approval, and log follow work as expected",
+      "target": "tools/bob-pipeline/apps/web/src/pages/IssuePage.tsx, tools/bob-pipeline/apps/web/src/components/LogView.tsx, tools/bob-pipeline/apps/web/src/views/base.tsx",
+      "rationale": "Acceptance scenario validating that the issue detail page and all its sub-views (stepper, action panel, prose, diffs, console logs) adhere to the new visual style while maintaining user interaction and polling behavior.",
+      "traces_to": [
+        "AC-5",
+        "AC-8",
+        "risk: Wide class-name sweep causes visual regressions (board columns, graph, prose tables)"
+      ]
+    },
+    {
+      "id": "T-5",
+      "layer": "bdd",
+      "title": "Developer navigates to dependencies page and interacts with graph and ordering",
+      "gherkin": "Given the pipeline dashboard is running with recorded issue dependencies\nWhen a developer navigates to the Dependencies page at \"/dependencies\"\nThen the dependency graph displays nodes with brand focus borders and distinguishable edge kinds\nAnd the dependency table displays canvas headers, line dividers, and brand issue links\nAnd clicking issue links or suggested order items navigates correctly without error",
+      "target": "tools/bob-pipeline/apps/web/src/pages/DependenciesPage.tsx, tools/bob-pipeline/apps/web/src/components/DepGraph.tsx, tools/bob-pipeline/apps/web/src/components/DependencyTable.tsx",
+      "rationale": "Acceptance scenario verifying that the dependencies view, graph visualization, and table layout operate seamlessly together with the restyled visual palette.",
+      "traces_to": [
+        "AC-5",
+        "AC-6",
+        "AC-8"
+      ]
+    },
+    {
+      "id": "T-6",
+      "layer": "component",
+      "title": "Shared UI primitives rendering, variant palette, and keyboard focus outlines",
+      "target": "tools/bob-pipeline/apps/web/src/components/ui.tsx",
+      "rationale": "Tests the component boundary of shared UI primitives (Button across 4 variants and disabled state, StatusBadge across all 8 statuses, Card, ErrorBox). Proves visual token application, tag shape, and 2px brand focus rings (:focus-visible) in isolation.",
+      "traces_to": [
+        "AC-1",
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-7",
+      "layer": "component",
+      "title": "App shell Layout header styling, active navigation state, and poller controls",
+      "target": "tools/bob-pipeline/apps/web/src/components/Layout.tsx",
+      "rationale": "Tests the app shell container component at the layout boundary: sticky header surface, active vs inactive NavLink styling, poller control layout and status display, and warning banner appearance.",
+      "traces_to": [
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "T-8",
+      "layer": "component",
+      "title": "Visual distinguishability of dependency graph edges and test pyramid layers",
+      "target": "tools/bob-pipeline/apps/web/src/components/DepGraph.tsx, tools/bob-pipeline/apps/web/src/views/TestPyramidView.tsx",
+      "rationale": "Validates component-level visual contracts for complex graphics. Ensures that the 4 graph edge kinds (recorded solid teal, deps-check dashed orange, plan dashed indigo, overlaps dotted gray) and the 4 pyramid levels (smoke orange, bdd violet, component blue, unit teal) remain easily distinguishable from each other.",
+      "traces_to": [
+        "AC-6",
+        "risk: Colour changes reduce contrast or make status/edge/test-level colours indistinguishable",
+        "risk: Hard-coded hex colours in graph/pyramid are missed and look inconsistent"
+      ]
+    },
+    {
+      "id": "T-9",
+      "layer": "component",
+      "title": "Multi-viewport responsive rendering and layout degradation",
+      "target": "tools/bob-pipeline/apps/web/src/components/Layout.tsx, tools/bob-pipeline/apps/web/src/pages/Dashboard.tsx, tools/bob-pipeline/apps/web/src/pages/IssuePage.tsx, tools/bob-pipeline/apps/web/src/pages/DependenciesPage.tsx",
+      "rationale": "Tests layout boundaries across viewport widths (1440px desktop, 1024px small desktop, 768px tablet, 390px mobile). Confirms poller controls wrap cleanly and that no unexpected horizontal page overflow occurs outside the designated board scroll container.",
+      "traces_to": [
+        "AC-9",
+        "risk: Wide class-name sweep causes visual regressions (board columns, graph, prose tables)"
+      ]
+    },
+    {
+      "id": "T-10",
+      "layer": "unit",
+      "title": "WCAG 2.1 AA color contrast validation across all foreground and background pairs",
+      "target": "tools/bob-pipeline/apps/web/src/index.css, tools/bob-pipeline/apps/web/src/components/ui.tsx, tools/bob-pipeline/apps/web/src/views/TestPyramidView.tsx, tools/bob-pipeline/apps/web/src/components/LogView.tsx",
+      "rationale": "Pure logic calculation of relative luminance contrast ratios for every color combination (WCAG AA requirement >= 4.5:1 for normal text). Proves mathematical compliance for white on brand-700 (5.5:1), text-muted on canvas/subtle/surface, all 8 status badge pairs, log console text, and pyramid band text.",
+      "traces_to": [
+        "AC-7",
+        "risk: Colour changes reduce contrast or make status/edge/test-level colours indistinguishable"
+      ]
+    },
+    {
+      "id": "T-11",
+      "layer": "unit",
+      "title": "Dependency graph edgeStyle stroke and strokeDasharray mapping",
+      "target": "tools/bob-pipeline/apps/web/src/components/DepGraph.tsx (edgeStyle)",
+      "rationale": "Pure unit function test verifying that edgeStyle maps each DependencyEdge kind (overlaps, recorded, deps-check, plan) to the exact new hex color in GRAPH_COLORS and the correct dash array.",
+      "traces_to": [
+        "AC-6",
+        "risk: Hard-coded hex colours in graph/pyramid are missed and look inconsistent"
+      ]
+    },
+    {
+      "id": "T-12",
+      "layer": "unit",
+      "title": "Status badge dictionary mapping and pulse animation configuration",
+      "target": "tools/bob-pipeline/apps/web/src/components/ui.tsx (statusStyle)",
+      "rationale": "Pure unit dictionary test verifying statusStyle entries for all eight pipeline statuses, ensuring gray scale usage for neutral states (not-started, parked), proper text/background classes, and animate-pulse on running.",
+      "traces_to": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-13",
+      "layer": "unit",
+      "title": "Test pyramid META layer definition and Tailwind text class mappings",
+      "target": "tools/bob-pipeline/apps/web/src/views/TestPyramidView.tsx (META)",
+      "rationale": "Pure unit dictionary test verifying that META defines smoke (#c2410c, text-orange-700), bdd (#6d28d9, text-violet-700), component (#1d4ed8, text-blue-700), and unit (#0f766e, text-brand-700) with valid darkened hex values and literal class strings.",
+      "traces_to": [
+        "AC-6",
+        "risk: Colour changes reduce contrast or make status/edge/test-level colours indistinguishable"
+      ]
+    }
+  ],
+  "gaps": [
+    "Dark mode is deliberately not tested: scope is explicitly limited to light theme as defined in the high-level and low-level plan assumptions.",
+    "Direct Chakra UI Pro component / asset tests: Chakra UI Pro is a proprietary kit; the implementation emulates the visual look and feel using Tailwind CSS v4 tokens without copying proprietary code or assets.",
+    "Server backend / API contract tests: Fastify backend routes, JSON schemas, and CLI commands are untouched by this visual styling change.",
+    "Automated browser E2E test harness: the repository has no pre-existing browser automation framework; tests rely on smoke build and grep verification, component/unit evaluation, and manual browser verification recorded in the PR."
+  ]
+}
