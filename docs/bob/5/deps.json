@@ -1,0 +1,16 @@
+{
+  "issue": 5,
+  "dependencies": [
+    {
+      "issue": 4,
+      "kind": "overlaps",
+      "reason": "Both plans define a sales order / sales order line model: #4 as Java POJOs under src/main/java/com/neversoft/, #5 as a client-side TypeScript model in sales-orders-ui/src. #5 explicitly assumes no backend or API exists, so it does not rely on #4's output. No files are shared; field names are provisional in both plans and could be aligned.",
+      "shared": [
+        "Sales order / sales order line domain concept (no shared files)"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "conflicts": [],
+  "recommended_order": [4, 5]
+}
