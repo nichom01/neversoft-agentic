@@ -1,0 +1,88 @@
+{
+  "issue": 1,
+  "changes": [
+    {
+      "path": "src/main/java/com/neversoft/vehicle/Vehicle.java",
+      "action": "create",
+      "description": "New public POJO in package com.neversoft.vehicle (java.util.Objects is the only import). Private fields in order: long id, String make, String model, int year, String vin, String color, long mileage. Public no-arg constructor and a public all-fields constructor (long, String, String, int, String, String, long) that assigns the fields directly with no validation. A public getter and setter for every field with JavaBean naming. @Override equals (identity check, null/getClass check, then primitives with == and Strings with Objects.equals over all fields), hashCode via Objects.hash over the same seven fields, and toString including all fields. Short class Javadoc noting the field list is provisional. No other file is created or modified; no build file or compiled output is added to the repo.",
+      "symbols": [
+        "Vehicle",
+        "Vehicle()",
+        "Vehicle(long, String, String, int, String, String, long)",
+        "getId",
+        "setId",
+        "getMake",
+        "setMake",
+        "getModel",
+        "setModel",
+        "getYear",
+        "setYear",
+        "getVin",
+        "setVin",
+        "getColor",
+        "setColor",
+        "getMileage",
+        "setMileage",
+        "equals",
+        "hashCode",
+        "toString"
+      ],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6"]
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "Vehicle()",
+      "signature": "public Vehicle()",
+      "notes": "No-arg constructor. Primitives default to 0 and Strings to null."
+    },
+    {
+      "name": "Vehicle(all fields)",
+      "signature": "public Vehicle(long id, String make, String model, int year, String vin, String color, long mileage)",
+      "notes": "Assigns fields directly, no validation."
+    },
+    {
+      "name": "getters",
+      "signature": "public long getId(); public String getMake(); public String getModel(); public int getYear(); public String getVin(); public String getColor(); public long getMileage()"
+    },
+    {
+      "name": "setters",
+      "signature": "public void setId(long id); public void setMake(String make); public void setModel(String model); public void setYear(int year); public void setVin(String vin); public void setColor(String color); public void setMileage(long mileage)"
+    },
+    {
+      "name": "equals",
+      "signature": "@Override public boolean equals(Object o)",
+      "notes": "Compares all seven fields; null-safe for String fields via Objects.equals."
+    },
+    {
+      "name": "hashCode",
+      "signature": "@Override public int hashCode()",
+      "notes": "Objects.hash over the same seven fields as equals."
+    },
+    {
+      "name": "toString",
+      "signature": "@Override public String toString()",
+      "notes": "Includes all seven fields."
+    }
+  ],
+  "data_changes": [],
+  "test_approach": [
+    {
+      "layer": "smoke",
+      "what": "From the repo root run javac --release 25 -Xlint:all -Werror -d \"$(mktemp -d)\" src/main/java/com/neversoft/vehicle/Vehicle.java; it must exit 0 with no output, showing the file compiles with only the JDK, no warnings, and a package consistent with its path.",
+      "covers": ["AC-1", "AC-5"]
+    },
+    {
+      "layer": "smoke",
+      "what": "Run git status --porcelain; only src/main/java/com/neversoft/vehicle/Vehicle.java and docs/bob/1/ plan files may appear, and no existing tracked file may be modified.",
+      "covers": ["AC-6"]
+    },
+    {
+      "layer": "unit",
+      "what": "Optional throwaway jshell check, not committed: two instances built with identical args are equal with equal hashCode and toString lists all 7 fields; changing one field makes equals false; new Vehicle().getMake() is null and equals/hashCode do not throw on null Strings.",
+      "covers": ["AC-2", "AC-3", "AC-4"]
+    }
+  ],
+  "rollout": "Single commit adding the one file; no build, flag or compatibility concerns and no existing code references the class. Record the mojo = POJO interpretation in the PR description. A follow-up issue can revise the fields.",
+  "open_questions": []
+}
