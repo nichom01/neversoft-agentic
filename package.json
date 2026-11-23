@@ -2,7 +2,15 @@
   "name": "neversoft-agentic",
   "private": true,
   "version": "0.0.0",
+  "workspaces": [
+    "tools/warehouse-server",
+    "tools/warehouse-ui"
+  ],
   "scripts": {
-    "test": "OUT=$(mktemp -d) && javac --release 25 -Xlint:all -Werror -d \"$OUT\" src/main/java/com/neversoft/vehicle/Vehicle.java src/main/java/com/neversoft/warehouse/Warehouse.java src/main/java/com/neversoft/warehouse/Store.java src/main/java/com/neversoft/warehouse/Location.java src/main/java/com/neversoft/warehouse/Product.java src/main/java/com/neversoft/warehouse/StockItem.java src/test/java/com/neversoft/vehicle/VehicleTest.java src/test/java/com/neversoft/warehouse/WarehouseTest.java && java -cp \"$OUT\" com.neversoft.vehicle.VehicleTest && java -cp \"$OUT\" com.neversoft.warehouse.WarehouseTest"
+    "test": "OUT=$(mktemp -d) && javac --release 25 -Xlint:all -Werror -d \"$OUT\" src/main/java/com/neversoft/vehicle/Vehicle.java src/test/java/com/neversoft/vehicle/VehicleTest.java && java -cp \"$OUT\" com.neversoft.vehicle.VehicleTest",
+    "test:warehouse": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w @warehouse/ui",
+    "start": "npm run build && npm run start -w @warehouse/server"
   }
 }

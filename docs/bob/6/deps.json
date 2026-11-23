@@ -1,0 +1,29 @@
+{
+  "issue": 6,
+  "dependencies": [
+    {
+      "issue": 1,
+      "kind": "blocked_by",
+      "reason": "Issue #6 implements REST CRUD endpoints and UI screens mirroring the Vehicle domain model created in Issue #1.",
+      "shared": [
+        "src/main/java/com/neversoft/vehicle/Vehicle.java"
+      ],
+      "confidence": "high"
+    },
+    {
+      "issue": 3,
+      "kind": "overlaps",
+      "reason": "Both issues modify the root package.json (Issue #3 adds test script entries, Issue #6 registers new workspace packages).",
+      "shared": [
+        "package.json"
+      ],
+      "confidence": "medium"
+    }
+  ],
+  "conflicts": [],
+  "recommended_order": [
+    1,
+    3,
+    6
+  ]
+}

@@ -1,0 +1,308 @@
+{
+  "issue": 6,
+  "tests": [
+    {
+      "id": "T-1",
+      "layer": "smoke",
+      "title": "Root typecheck passes for both new packages",
+      "target": "npm run typecheck at repo root (tsc -p tsconfig.json in @warehouse/server and @warehouse/ui)",
+      "rationale": "AC-6 is defined as this command passing, so the command is the test. It also catches broken imports or types across the whole change, including test files.",
+      "traces_to": ["AC-6"]
+    },
+    {
+      "id": "T-2",
+      "layer": "smoke",
+      "title": "Built app starts and serves UI and API on loopback only",
+      "target": "Script/CI step: npm run build && npm run start with WAREHOUSE_DATA_DIR=<tmp>; curl http://127.0.0.1:4323/api/vehicles (200, empty list), / (HTML 'Warehouse admin'), /vehicles/new (SPA fallback); lsof shows listener on 127.0.0.1 only; warehouse.sqlite exists",
+      "rationale": "Only test that proves the whole deployed path: Vite build output, Fastify static serving, real index.ts wiring (host, port, data dir) and a real node:sqlite file. None of this can be proved by inject tests.",
+      "traces_to": ["AC-1", "AC-2", "AC-3", "risk: Node 22.13+ node:sqlite not available on the developer's machine"]
+    },
+    {
+      "id": "T-3",
+      "layer": "bdd",
+      "title": "API journey: create, read, update, delete a vehicle",
+      "gherkin": "Given an empty warehouse database\nWhen a client POSTs a valid vehicle {make: \"Ford\", model: \"Transit\", year: 2020, vin: \"VIN-1\", color: \"White\", mileage: 12000}\nThen the response is 201 and contains a generated id plus the submitted fields\nWhen the client GETs /api/vehicles/{id}\nThen the response is 200 with the same vehicle\nWhen the client PUTs the same id with mileage 15000\nThen the response is 200 and mileage is 15000\nWhen the client DELETEs the id\nThen the response is 204\nAnd a following GET of that id returns 404 {\"error\": ...}",
+      "target": "tools/warehouse-server/src/app.test.ts (node:test, buildApp(new WarehouseDb(\":memory:\")), app.inject)",
+      "rationale": "The journey spans route, validation and DB together, which is what 'CRUD works' means for a caller. It runs in-process, so no real server is needed.",
+      "traces_to": ["AC-2", "AC-3"]
+    },
+    {
+      "id": "T-4",
+      "layer": "bdd",
+      "title": "API journey: filter and page the list",
+      "gherkin": "Given vehicles Ford Transit, Ford Focus and Toyota Hilux exist\nWhen a client GETs /api/vehicles?q=ford\nThen total is 2 and items contain only the two Fords\nWhen a client GETs /api/vehicles?pageSize=1&page=2\nThen items has exactly one vehicle, total is 3, page is 2 and pageSize is 1\nWhen a client edits one vehicle and deletes another\nThen the list and total reflect each step",
+      "target": "tools/warehouse-server/src/app.test.ts",
+      "rationale": "The UI's paginated/filterable list depends on this server contract, so it is proved through the HTTP surface. Paging arithmetic details are left to unit tests T-23 and T-24.",
+      "traces_to": ["AC-2", "AC-4"]
+    },
+    {
+      "id": "T-5",
+      "layer": "bdd",
+      "title": "UI journey: browse, filter and page vehicles",
+      "gherkin": "Given the warehouse server holds 12 vehicles (a fake fetch emulating GET /api/vehicles)\nWhen the admin opens \"/\"\nThen the table shows the first 10 vehicles with columns id, make, model, year, VIN, color and mileage\nAnd the label reads \"page 1 of 2\"\nWhen the admin clicks Next\nThen the second page with 2 vehicles is shown and Next is disabled\nWhen the admin types \"ford\" in the search box\nThen the page returns to 1 and the request carries q=ford",
+      "target": "tools/warehouse-ui/src/pages/vehicles.journey.test.tsx (Vitest, React Testing Library, MemoryRouter, stubbed fetch)",
+      "rationale": "The user sees this behaviour. It spans the page, React Query hooks, api.ts and the router. jsdom is enough, so no browser is needed.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-6",
+      "layer": "bdd",
+      "title": "UI journey: create a vehicle",
+      "gherkin": "Given the admin is on \"/\"\nWhen the admin clicks \"New vehicle\"\nThen the create form is shown at /vehicles/new with empty fields\nWhen the admin fills in all fields and submits\nThen POST /api/vehicles is sent with the typed values (year and mileage as numbers)\nAnd the app navigates back to \"/\"\nAnd the vehicle list is re-fetched",
+      "target": "tools/warehouse-ui/src/pages/vehicles.journey.test.tsx",
+      "rationale": "Proves routing, form, mutation and cache invalidation work together, which no single component test can prove.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-7",
+      "layer": "bdd",
+      "title": "UI journey: edit a vehicle",
+      "gherkin": "Given vehicle 7 exists\nWhen the admin clicks Edit on that row\nThen the form at /vehicles/7/edit is pre-filled with the vehicle's values\nWhen the admin changes the color and submits\nThen PUT /api/vehicles/7 is sent with the full input\nAnd the app returns to \"/\" showing the new color",
+      "target": "tools/warehouse-ui/src/pages/vehicles.journey.test.tsx",
+      "rationale": "Same reason as T-6, and it proves the :id param switches the single form component into edit mode.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-8",
+      "layer": "bdd",
+      "title": "UI journey: delete with confirmation",
+      "gherkin": "Given the list shows a Ford Transit with VIN \"VIN-1\"\nWhen the admin clicks Delete on that row\nThen a confirmation overlay shows \"Ford\", \"Transit\" and \"VIN-1\" with Cancel and Confirm buttons\nAnd no DELETE request has been sent\nWhen the admin clicks Cancel\nThen the overlay closes and the row is still listed\nWhen the admin clicks Delete and then Confirm\nThen DELETE /api/vehicles/{id} is sent and the list is re-fetched without that vehicle",
+      "target": "tools/warehouse-ui/src/pages/vehicles.journey.test.tsx",
+      "rationale": "The 'no request until Confirm' guarantee is a user-facing safety behaviour that spans page state and mutation.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-9",
+      "layer": "bdd",
+      "title": "Dev server proxies /api to the warehouse server",
+      "gherkin": "Given a stub HTTP server on 127.0.0.1:4323 that answers GET /api/vehicles with {\"items\":[],\"total\":0,\"page\":1,\"pageSize\":10}\nAnd the warehouse-ui Vite dev server is started programmatically from vite.config.ts\nWhen a developer requests http://127.0.0.1:4322/api/vehicles\nThen the response body is the stub's body\nAnd no request is made to port 4321 (the pipeline server)",
+      "target": "tools/warehouse-ui/src/devproxy.test.ts (Vitest node environment; createServer from vite; node:http stub)",
+      "rationale": "AC-5 is runtime proxy behaviour. A config-value assertion alone (T-33) would not prove forwarding. It needs a real Vite server but not a browser or the real backend.",
+      "traces_to": ["AC-5", "risk: Vite port conflict between warehouse-ui dev server and pipeline web app dev server"]
+    },
+    {
+      "id": "T-10",
+      "layer": "component",
+      "title": "HTTP contract: status code matrix for all five endpoints",
+      "target": "tools/warehouse-server/src/app.test.ts (table-driven app.inject: 200, 201, 204, 400, 404, 409 across GET list, GET id, POST, PUT, DELETE)",
+      "rationale": "This is the REST boundary the plan introduces and the UI depends on. Routes, validation and DB are wired by buildApp, so a handler-level test is the lowest layer that can check statuses. Each individual rule is proved by a unit test.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-11",
+      "layer": "component",
+      "title": "Error handling and static/SPA fallback",
+      "target": "tools/warehouse-server/src/app.test.ts (throwing DB stub gives generic 500 with no SQL or stack; malformed JSON gives 400 'Bad request'; unknown /api path gives 404 'Not found'; webDist temp dir gives index.html fallback; no webDist still builds)",
+      "rationale": "Error contract of the new boundary and a security requirement (no stack traces or SQL text to clients). It needs the real Fastify error handler, so it cannot be a pure unit test.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-12",
+      "layer": "component",
+      "title": "SQLite file persistence and schema match Vehicle.java",
+      "target": "tools/warehouse-server/src/db.test.ts (temp file path; close and reopen; PRAGMA table_info(vehicles) via node:sqlite)",
+      "rationale": "The DB-access boundary is the real file and real engine. :memory: cannot prove persistence or the on-disk schema. Checks data survives reopen, columns are exactly id, make, model, year, vin, color, mileage, id is PK, vin is UNIQUE, WAL is on, and reopening does not wipe data.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-13",
+      "layer": "component",
+      "title": "UI API client and hooks contract",
+      "target": "tools/warehouse-ui/src/api.test.ts (Vitest, fake fetch, QueryClientProvider, renderHook)",
+      "rationale": "UI-to-server boundary. Proves method, URL and headers per verb, encoded q/page/pageSize query, relative /api URLs for the proxy, 204 handling, { error } surfaced as Error.message, non-JSON error fallback, invalidation of ['vehicles'] on mutations, and no fetch for useVehicle(undefined).",
+      "traces_to": ["AC-4", "AC-5"]
+    },
+    {
+      "id": "T-14",
+      "layer": "component",
+      "title": "VehicleListPage states",
+      "target": "tools/warehouse-ui/src/pages/VehicleListPage.test.tsx",
+      "rationale": "State branches of one component that the journey tests do not exercise: loading, empty, fetch error, disabled Prev/Next, page reset on q change, failed DELETE keeping the overlay and showing an ErrorBox, and New/Edit links. Provable against a fake fetch without the full router journey.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-15",
+      "layer": "component",
+      "title": "VehicleFormPage validation and modes",
+      "target": "tools/warehouse-ui/src/pages/VehicleFormPage.test.tsx",
+      "rationale": "The form has the most branches, mostly error paths. Create vs edit mode, prefill and load-404, client-side checks blocking submit (empty make/model/VIN, bad year, negative mileage), server 400/409 shown in ErrorBox with input kept, Cancel sends no request, and submit disabled while pending.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-16",
+      "layer": "unit",
+      "title": "parseVehicleInput accepts valid input, trims and ignores client id",
+      "target": "tools/warehouse-server/src/validate.test.ts",
+      "rationale": "Pure function with no I/O. Covers trimming of make, model, vin and color, and a client-supplied id being dropped.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-17",
+      "layer": "unit",
+      "title": "parseVehicleInput string length boundaries",
+      "target": "tools/warehouse-server/src/validate.test.ts",
+      "rationale": "Boundary-value tests of pure logic: make/model 1 and 100 pass, 0, 101 and whitespace-only fail; vin 1 and 64 pass, 65 fails; color 0 and 50 pass, 51 fails; non-strings fail.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-18",
+      "layer": "unit",
+      "title": "parseVehicleInput year and mileage rules",
+      "target": "tools/warehouse-server/src/validate.test.ts",
+      "rationale": "Numeric edge cases of pure logic: year 1886 and current+1 pass, 1885, current+2, 2020.5, '2020', NaN and Infinity fail; mileage 0 and MAX_SAFE_INTEGER pass, -1, 1.5, MAX_SAFE_INTEGER+1 and '5' fail.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-19",
+      "layer": "unit",
+      "title": "parseVehicleInput rejects bad shapes",
+      "target": "tools/warehouse-server/src/validate.test.ts",
+      "rationale": "Allow-list validation of pure logic. null, undefined, arrays, strings, missing required fields and unknown extra fields each throw HttpError 400.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-20",
+      "layer": "unit",
+      "title": "parseId",
+      "target": "tools/warehouse-server/src/validate.test.ts",
+      "rationale": "Pure function. '1' and '42' parse; '0', '-1', '1.5', 'abc', '', '1e3', '9007199254740993' and undefined throw HttpError(400, 'Invalid id').",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-21",
+      "layer": "unit",
+      "title": "parseVehicleQuery",
+      "target": "tools/warehouse-server/src/validate.test.ts",
+      "rationale": "Pure function with defaults and bounds: defaults q '', page 1, pageSize 10; q trimmed and capped at 100; page 0, -1, 'x' give 400; pageSize 0, 101, 'x' give 400 while 1 and 100 pass; array-valued params give 400.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-22",
+      "layer": "unit",
+      "title": "WarehouseDb create, get, update, delete round trip stores values unchanged",
+      "target": "tools/warehouse-server/src/db.test.ts (:memory:)",
+      "rationale": "Data-access logic without HTTP. Returned values equal input plus a positive integer id; update keeps id; delete returns true and removes the row; ids are not reused (AUTOINCREMENT).",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-23",
+      "layer": "unit",
+      "title": "WarehouseDb filter matches make, model, vin and color",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "One query with four OR branches. A fixture row per column where only that column matches catches a dropped branch. Matching is case-insensitive and total is consistent with items.",
+      "traces_to": ["AC-3", "AC-4"]
+    },
+    {
+      "id": "T-24",
+      "layer": "unit",
+      "title": "WarehouseDb pagination arithmetic and ordering",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "Pure data-access logic. 25 rows at pageSize 10 give pages of 10, 10 and 5; ordered by id; total is 25 on every page; a page beyond the end returns empty items with total 25; COUNT(*) uses the same WHERE as the filter.",
+      "traces_to": ["AC-4"]
+    },
+    {
+      "id": "T-25",
+      "layer": "unit",
+      "title": "likePattern and LIKE wildcards are treated literally",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "The escaping function is pure and the filter depends on it. %, _ and \\ are escaped; with rows '100% Ford' and 'Ford', q='%' returns only the first and q='_' does not match every row.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-26",
+      "layer": "unit",
+      "title": "Duplicate VIN is rejected on create and update",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "DB-constraint to domain-error mapping. Create and update onto another row's VIN throw DuplicateVinError; updating a row with its own VIN succeeds; other constraint errors are not converted to DuplicateVinError.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-27",
+      "layer": "unit",
+      "title": "Missing-row behaviour",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "Simple branch coverage the route handlers rely on for 404s: getVehicle(999) returns null, updateVehicle(999, ...) returns null, deleteVehicle(999) returns false, none throw.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-28",
+      "layer": "unit",
+      "title": "SQL metacharacters in input are stored and searched literally",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "Proves the parameterised-query security requirement at the lowest layer. A make of \"Robert'); DROP TABLE vehicles;--\" round-trips verbatim, is found by q, and the table keeps its other rows.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-29",
+      "layer": "unit",
+      "title": "Mileage CHECK constraint at DB level",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "Proves the schema protects itself if validation is bypassed. createVehicle called directly with mileage -1 throws, stores no row, and the error is not a DuplicateVinError.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-30",
+      "layer": "unit",
+      "title": "loadSqlite returns a working DatabaseSync",
+      "target": "tools/warehouse-server/src/db.test.ts",
+      "rationale": "Pure environment check. loadSqlite() returns a DatabaseSync that opens :memory:, and the test asserts Node is at least 22.13 so a wrong CI Node fails clearly. The failure branch is a documented gap.",
+      "traces_to": ["AC-3", "risk: Node 22.13+ node:sqlite not available on the developer's machine"]
+    },
+    {
+      "id": "T-31",
+      "layer": "unit",
+      "title": "UI primitives Button, Card and ErrorBox match the pipeline classes",
+      "target": "tools/warehouse-ui/src/components/ui.test.tsx",
+      "rationale": "Pure rendering of leaf components and the cheapest drift guard. Asserts the four Button variants, Card classes and className merge, and ErrorBox behaviour for falsy, Error and non-Error values, using expected class strings written into the test (the pipeline ui.tsx is not imported because it pulls in @bob-pipeline/shared).",
+      "traces_to": ["AC-4", "risk: Duplicated UI primitives drift from the pipeline web app over time"]
+    },
+    {
+      "id": "T-32",
+      "layer": "unit",
+      "title": "UI dependency ranges match the pipeline web app",
+      "target": "tools/warehouse-ui/src/conformance.test.ts (reads both package.json files)",
+      "rationale": "Static file check, no runtime needed. React, react-dom, react-router-dom, @tanstack/react-query, tailwindcss, @tailwindcss/vite, vite, @vitejs/plugin-react, @types/react, @types/react-dom and typescript ranges equal the pipeline's; pipeline-only packages are absent.",
+      "traces_to": ["AC-1", "risk: Duplicated UI primitives drift from the pipeline web app over time"]
+    },
+    {
+      "id": "T-33",
+      "layer": "unit",
+      "title": "vite.config.ts static settings",
+      "target": "tools/warehouse-ui/src/conformance.test.ts (imports ../vite.config.ts)",
+      "rationale": "Pure config assertion: server.port 4322, strictPort true, proxy['/api'].target http://127.0.0.1:4323, no proxy target containing 4321, React and Tailwind plugins present. T-9 covers runtime forwarding.",
+      "traces_to": ["AC-1", "AC-5", "risk: Vite port conflict between warehouse-ui dev server and pipeline web app dev server"]
+    },
+    {
+      "id": "T-34",
+      "layer": "unit",
+      "title": "Root package.json registers the workspaces and stays additive",
+      "target": "tools/warehouse-server/src/conformance.test.ts (reads root package.json)",
+      "rationale": "Static file check. workspaces equals the two new packages (not tools/bob-pipeline); scripts typecheck, build, start and test:warehouse exist; the Java test script and name/private/version are unchanged; both packages are type: module; the server declares engines.node >=22.13.",
+      "traces_to": ["AC-1", "AC-2", "AC-6", "AC-7"]
+    },
+    {
+      "id": "T-35",
+      "layer": "unit",
+      "title": "Server entry binds to loopback only and the host is not configurable",
+      "target": "tools/warehouse-server/src/conformance.test.ts (reads src/index.ts as text)",
+      "rationale": "index.ts listens at import time so it cannot be imported in a unit test. A source-text check is the cheapest guard for the never-bind-0.0.0.0 security rule: contains host \"127.0.0.1\", does not contain 0.0.0.0, does not read a HOST env var. T-2 proves the real socket.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-36",
+      "layer": "unit",
+      "title": "No existing file is modified except root package.json",
+      "target": "Script/CI step: git diff --name-status <base-branch>...HEAD (every M/D/R entry is package.json; everything else is A)",
+      "rationale": "AC-7 is a repo-state property with no runtime behaviour, so this is the only possible proof. It runs once before merge, not on every test run.",
+      "traces_to": ["AC-7"]
+    }
+  ],
+  "gaps": [
+    "Risk \"'Warehouse classes' turns out to mean something other than the Java POJOs\": a requirements question for the issue author, not a behaviour code can prove. Not testable.",
+    "Risk \"Node 22.13+ node:sqlite not available\": only the success path is tested (T-30). The failure branch cannot be reached on a Node that has node:sqlite unless loadSqlite() accepts an injected loader; the LLP copies the pipeline's non-injectable function and this plan does not change the design. Accepted, low severity.",
+    "AC-4 'same visual primitives': T-31 checks class tokens and T-5 to T-8 prove the pages use the primitives. Pixel-level visual parity and Tailwind compilation of the classes are not checked because the repo has no visual regression tooling; T-2 only proves the build succeeds.",
+    "No browser-level end-to-end test (Playwright or similar) is planned: the repo has no browser tooling and the jsdom journeys (T-5 to T-8) plus the real-server smoke (T-2) cover the behaviour. Real-browser layout, overlay stacking and keyboard focus are untested.",
+    "Concurrency (two writers racing on the same VIN) is not tested beyond the DB UNIQUE constraint (T-26), because this is a single-user local tool.",
+    "The Java Vehicle.java to TypeScript type mirror is not machine-checked: no tool compares them and Vehicle.java must not change. The column-name check in T-12 is the nearest proxy."
+  ]
+}

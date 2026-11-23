@@ -1,0 +1,104 @@
+{
+  "issue": 6,
+  "summary": "Build a standalone warehouse admin UI — a new React + Vite SPA in the same tech stack as the existing Bob pipeline web app — that provides CRUD screens for the domain-model classes in the Java source tree, starting with Vehicle.",
+  "approach": "Create two sibling npm workspace packages under tools/: a Fastify REST server (tools/warehouse-server) persisting warehouse entities in a local SQLite database via node:sqlite, and a React 18 + Vite + Tailwind CSS v4 + React Router v6 + React Query v5 SPA (tools/warehouse-ui) with list, create, edit and delete screens for Vehicle. The packages follow the same conventions as the existing tools/bob-pipeline apps. No existing file is changed except the workspace config to register the two new packages.",
+  "alternatives_considered": [
+    {
+      "option": "Extend the existing pipeline web app with warehouse pages",
+      "rejected_because": "The pipeline UI is tightly coupled to the Bob pipeline domain; mixing warehouse admin into it conflates unrelated concerns and makes both harder to navigate."
+    },
+    {
+      "option": "Use a full Spring Boot or Quarkus backend",
+      "rejected_because": "Adds a build system and runtime dependency not present in the repo; the pipeline server already proves Node + Fastify + SQLite is sufficient for a local admin tool."
+    },
+    {
+      "option": "Generate a UI from the Java classes via reflection",
+      "rejected_because": "No build system exists and there is no JVM process running to reflect against; the Java classes are compiled independently."
+    }
+  ],
+  "components": [
+    "tools/warehouse-server — new Fastify REST API: CRUD endpoints per entity, SQLite persistence, serves built SPA as static files",
+    "tools/warehouse-ui — new React SPA: list, create, edit, delete screens for Vehicle; shared UI primitives matching the pipeline web app",
+    "src/main/java/com/neversoft/vehicle/Vehicle.java — not modified; defines the canonical domain shape the warehouse server mirrors in TypeScript types"
+  ],
+  "files_likely_touched": [
+    "tools/warehouse-server/package.json",
+    "tools/warehouse-server/src/index.ts",
+    "tools/warehouse-server/src/db.ts",
+    "tools/warehouse-server/src/types.ts",
+    "tools/warehouse-ui/package.json",
+    "tools/warehouse-ui/vite.config.ts",
+    "tools/warehouse-ui/index.html",
+    "tools/warehouse-ui/src/main.tsx",
+    "tools/warehouse-ui/src/api.ts",
+    "tools/warehouse-ui/src/components/ui.tsx",
+    "tools/warehouse-ui/src/pages/VehicleListPage.tsx",
+    "tools/warehouse-ui/src/pages/VehicleFormPage.tsx",
+    "package.json"
+  ],
+  "depends_on_issues": [],
+  "assumptions": [
+    "The phrase 'same tech stack as the sales orders' refers to the Bob pipeline web app (tools/bob-pipeline/apps/web), the only existing UI in the repository.",
+    "Other warehouse classes are the Java domain POJOs in src/main/java/; Vehicle (issue #1) is the only class currently present, so it is the first entity type the admin UI covers.",
+    "Additional entity types added by future issues will be handled in follow-up issues; this issue covers Vehicle only.",
+    "The warehouse admin UI is a local developer tool requiring no authentication beyond the developer's workstation.",
+    "Node 22.13+ is available (required for node:sqlite, consistent with the pipeline server requirement)."
+  ],
+  "risks": [
+    {
+      "risk": "'Warehouse classes' turns out to mean something other than the Java POJOs in src/",
+      "severity": "medium",
+      "mitigation": "Confirm with the issue author; the plan is easy to pivot if the target entities differ."
+    },
+    {
+      "risk": "Node 22.13+ node:sqlite not available on the developer's machine",
+      "severity": "low",
+      "mitigation": "Mirror the pipeline server's existing approach: check at startup and emit a clear error message."
+    },
+    {
+      "risk": "Duplicated UI primitives drift from the pipeline web app over time",
+      "severity": "low",
+      "mitigation": "Extract shared components to a new tools/bob-pipeline/packages/ui package in a future cleanup; out of scope here."
+    },
+    {
+      "risk": "Vite port conflict between warehouse-ui dev server and pipeline web app dev server",
+      "severity": "low",
+      "mitigation": "Use a distinct default port (e.g. 4322) in vite.config.ts."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "A new npm workspace package tools/warehouse-ui exists, built with Vite + React 18 + Tailwind CSS v4 + React Router v6 + React Query v5, matching the dependency versions in tools/bob-pipeline/apps/web/package.json."
+    },
+    {
+      "id": "AC-2",
+      "criterion": "A new npm workspace package tools/warehouse-server exists with a Fastify server that listens on 127.0.0.1 and serves CRUD REST endpoints: GET /api/vehicles, GET /api/vehicles/:id, POST /api/vehicles, PUT /api/vehicles/:id, DELETE /api/vehicles/:id."
+    },
+    {
+      "id": "AC-3",
+      "criterion": "The warehouse server persists Vehicle records to a local SQLite database using node:sqlite (Node 22.13+), with columns matching Vehicle.java fields: id, make, model, year, vin, color, mileage."
+    },
+    {
+      "id": "AC-4",
+      "criterion": "The warehouse UI displays a paginated/filterable list of vehicles, a create form, an edit form, and a delete confirmation, using the same visual primitives (Card, Button, Tailwind classes) as the pipeline web app."
+    },
+    {
+      "id": "AC-5",
+      "criterion": "The warehouse UI's Vite dev server proxies /api requests to the warehouse server, not the pipeline server."
+    },
+    {
+      "id": "AC-6",
+      "criterion": "npm run typecheck passes with zero errors in both new packages."
+    },
+    {
+      "id": "AC-7",
+      "criterion": "No existing file in the repository is modified except the root package.json (or monorepo workspace config) to register the two new packages."
+    }
+  ],
+  "open_questions": [
+    "Should the warehouse server share the same SQLite database file as the pipeline server, or use its own? (Recommendation: its own, to keep concerns separated.)",
+    "Are there other domain entity types beyond Vehicle that should be scaffolded in this issue, or should only Vehicle be covered now?"
+  ],
+  "complexity": "M"
+}
