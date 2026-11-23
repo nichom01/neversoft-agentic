@@ -1,0 +1,88 @@
+{
+  "issue": 4,
+  "summary": "Add Java domain classes for SalesOrder, SalesOrderLine, and Customer, establishing parent-child relationships between sales orders and order lines, as well as associating sales orders with customers.",
+  "approach": "Create plain old Java object (POJO) domain classes (SalesOrder, SalesOrderLine, and Customer) in standard package structures under src/main/java/com/neversoft/. SalesOrder will manage order header attributes, a reference to a Customer, and a list of SalesOrderLine child items. SalesOrderLine will represent individual order items (e.g. product/item identifier, quantity, unit price, total), and Customer will represent customer information. Each class will provide standard private fields, no-argument and parameterized constructors, getters and setters, and consistent equals, hashCode, and toString implementations without external dependencies, matching the existing domain style in the repository.",
+  "alternatives_considered": [
+    {
+      "option": "Single composite class or inner static classes",
+      "rejected_because": "Separate top-level domain classes provide better modularity, separation of concerns, and ease of extension as domain models grow."
+    },
+    {
+      "option": "Java records",
+      "rejected_because": "To maintain consistency with existing POJO conventions (Vehicle.java), enable mutability for order lifecycle changes, and support broader framework compatibility."
+    },
+    {
+      "option": "JPA / ORM annotations",
+      "rejected_because": "No database infrastructure or ORM dependencies exist in the repository; domain models should remain lightweight and dependency-free."
+    },
+    {
+      "option": "Lombok annotations",
+      "rejected_because": "The project does not use Lombok or annotation-processing build plugins."
+    }
+  ],
+  "components": [
+    "Sales domain model (new) - new SalesOrder and SalesOrderLine domain classes representing orders and line items",
+    "Customer domain model (new) - new Customer domain class representing customer entities associated with orders"
+  ],
+  "files_likely_touched": [
+    "src/main/java/com/neversoft/sales/SalesOrder.java",
+    "src/main/java/com/neversoft/sales/SalesOrderLine.java",
+    "src/main/java/com/neversoft/customer/Customer.java"
+  ],
+  "depends_on_issues": [],
+  "assumptions": [
+    "Classes will follow plain Java object (POJO) conventions consistent with Vehicle.java.",
+    "Initial field sets for SalesOrder, SalesOrderLine, and Customer are sensible domain defaults and can be adapted in future issues.",
+    "Target Java version is Java 25.",
+    "No external persistence or database frameworks are required."
+  ],
+  "risks": [
+    {
+      "risk": "Domain field requirements evolve as business logic is added",
+      "severity": "low",
+      "mitigation": "Maintain simple, decoupled POJO classes so field additions and modifications are trivial."
+    },
+    {
+      "risk": "Circular reference between SalesOrder and SalesOrderLine in toString/hashCode/equals",
+      "severity": "low",
+      "mitigation": "Avoid bidirectional reference recursion in toString and hash calculations."
+    },
+    {
+      "risk": "Package naming conflicts with future modularization",
+      "severity": "low",
+      "mitigation": "Use conventional package paths (e.g. com.neversoft.sales and com.neversoft.customer)."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "A public SalesOrder class is created with fields for order identification, order date, status, customer reference, and a collection of SalesOrderLine objects."
+    },
+    {
+      "id": "AC-2",
+      "criterion": "A public SalesOrderLine class is created with fields for line identification, item description or code, quantity, unit price, and line amount."
+    },
+    {
+      "id": "AC-3",
+      "criterion": "A public Customer class is created with fields for customer identification, name, and contact details."
+    },
+    {
+      "id": "AC-4",
+      "criterion": "SalesOrder provides methods to associate with a Customer and manage its collection of SalesOrderLine child objects."
+    },
+    {
+      "id": "AC-5",
+      "criterion": "All domain classes provide no-arg constructors, parameterized constructors, getters, setters, and consistent equals, hashCode, and toString methods."
+    },
+    {
+      "id": "AC-6",
+      "criterion": "All classes compile cleanly with standard JDK (javac) with no external dependencies and no warnings."
+    },
+    {
+      "id": "AC-7",
+      "criterion": "No existing repository files are modified."
+    }
+  ],
+  "open_questions": [],
+  "complexity": "S"
+}
