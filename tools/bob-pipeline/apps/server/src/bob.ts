@@ -56,7 +56,7 @@ export async function runBob(p: Pipeline, o: BobRunOptions): Promise<BobRunResul
       const ev = tryJson(line);
       if (!ev) return o.onEvent(line);
       taskId = taskId ?? findString(ev, ["task_id", "taskId", "session_id", "sessionId"]);
-      const c = findNumber(ev, ["total_cost", "totalCost", "cost", "bobcoins", "cost_bobcoins"]);
+      const c = findNumber(ev, ["session_costs", "total_cost", "totalCost", "cost", "bobcoins", "cost_bobcoins"]);
       if (c !== null) cost = c;
       o.onEvent(summarise(ev));
     },
@@ -111,7 +111,16 @@ function findNumber(v: unknown, keys: string[]): number | null {
 
 /** One readable line per event for the live log. */
 function summarise(ev: Record<string, unknown>): string {
-  const type = String(ev.type ?? ev.event ?? "event");
+  const type = String(ev.type ?? ev.event ?? "event") + (typeof ev.role === "string" ? `:${ev.role}` : "");
+  if (ev.type === "result") {
+    const cost = findNumber(ev, ["session_costs", "total_cost", "cost"]);
+    const ms = findNumber(ev, ["duration_ms"]);
+    const tools = findNumber(ev, ["tool_calls"]);
+    return `[result] ${String(ev.status ?? "done")}` +
+      (cost !== null ? ` · cost ${cost}` : "") +
+      (ms !== null ? ` · ${(ms / 1000).toFixed(1)}s` : "") +
+      (tools !== null ? ` · ${tools} tool calls` : "");
+  }
   const text =
     pickText(ev.text) ?? pickText(ev.content) ?? pickText(ev.message) ?? pickText(ev.delta) ?? pickText(ev.result);
   const tool = findString(ev, ["tool", "tool_name", "toolName", "name"]);
