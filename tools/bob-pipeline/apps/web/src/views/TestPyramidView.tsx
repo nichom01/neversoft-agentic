@@ -5,10 +5,10 @@ import { PlanView, type StageViewProps } from "./base";
 type Layer = "smoke" | "bdd" | "component" | "unit";
 const LAYERS: Layer[] = ["smoke", "bdd", "component", "unit"];
 const META: Record<Layer, { label: string; color: string; text: string; blurb: string }> = {
-  smoke: { label: "Smoke", color: "#f97316", text: "text-orange-700", blurb: "Is it alive after deploy?" },
-  bdd: { label: "BDD", color: "#8b5cf6", text: "text-violet-700", blurb: "Does it meet each acceptance criterion?" },
-  component: { label: "Component", color: "#0ea5e9", text: "text-sky-700", blurb: "Do the changed boundaries keep their contracts?" },
-  unit: { label: "Unit", color: "#10b981", text: "text-emerald-700", blurb: "Is the logic right, edge cases included?" },
+  smoke: { label: "Smoke", color: "#c2410c", text: "text-orange-700", blurb: "Is it alive after deploy?" },
+  bdd: { label: "BDD", color: "#6d28d9", text: "text-violet-700", blurb: "Does it meet each acceptance criterion?" },
+  component: { label: "Component", color: "#1d4ed8", text: "text-blue-700", blurb: "Do the changed boundaries keep their contracts?" },
+  unit: { label: "Unit", color: "#0f766e", text: "text-brand-700", blurb: "Is the logic right, edge cases included?" },
 };
 
 interface PlannedTest {
@@ -60,11 +60,11 @@ export function TestPyramidView(props: StageViewProps) {
   if (!tests?.tests) {
     return testsFile ? (
       <div className="space-y-3">
-        <p className="text-sm text-red-600">tests.json couldn't be read as a test plan.</p>
+        <p className="text-sm text-red-700">tests.json couldn't be read as a test plan.</p>
         <PlanView {...props} />
       </div>
     ) : (
-      <p className="text-sm text-slate-500">No test plan yet.</p>
+      <p className="text-sm text-muted">No test plan yet.</p>
     );
   }
 
@@ -81,7 +81,7 @@ export function TestPyramidView(props: StageViewProps) {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-md px-3 py-1 ${tab === t ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-700"}`}
+            className={`rounded-control px-3 py-1 ${tab === t ? "bg-brand-700 text-white" : "bg-subtle text-ink"}`}
           >
             {t === "pyramid" ? "Pyramid and coverage" : "Plan document"}
           </button>
@@ -96,7 +96,7 @@ export function TestPyramidView(props: StageViewProps) {
             <Pyramid counts={byLayer} selected={layer} onSelect={(l) => setLayer(layer === l ? null : l)} />
             <div className="space-y-3 text-sm">
               <div className="text-2xl font-bold">
-                {tests.tests.length} <span className="text-base font-normal text-slate-500">planned tests</span>
+                {tests.tests.length} <span className="text-base font-normal text-muted">planned tests</span>
               </div>
               <Stat ok={!report.uncoveredCriteria.length} label={`Acceptance criteria covered: ${acs.length - report.uncoveredCriteria.length}/${acs.length}`} />
               <Stat ok={!report.uncoveredRisks.length} label={`Risks covered: ${risks.length - report.uncoveredRisks.length}/${risks.length}`} />
@@ -104,8 +104,8 @@ export function TestPyramidView(props: StageViewProps) {
                 <Stat ok={false} label={`Unknown references: ${report.unknownRefs.map((r) => `${r.test} → ${r.ref}`).join(", ")}`} />
               )}
               {tests.gaps?.length ? (
-                <div className="rounded-md bg-slate-50 p-3">
-                  <div className="mb-1 text-xs font-semibold text-slate-500">Deliberately not tested</div>
+                <div className="rounded-control bg-canvas p-3">
+                  <div className="mb-1 text-xs font-semibold text-muted">Deliberately not tested</div>
                   <ul className="list-disc pl-5 text-xs">
                     {tests.gaps.map((g) => (
                       <li key={g}>{g}</li>
@@ -113,15 +113,15 @@ export function TestPyramidView(props: StageViewProps) {
                   </ul>
                 </div>
               ) : null}
-              <p className="text-xs text-slate-500">Click a layer to filter the tests below.</p>
+              <p className="text-xs text-muted">Click a layer to filter the tests below.</p>
             </div>
           </div>
 
           <section>
             <h3 className="mb-2 text-sm font-semibold">Coverage</h3>
-            <div className="overflow-auto rounded-md border border-slate-200">
+            <div className="overflow-auto rounded-control border border-line bg-surface">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50 text-left text-slate-500">
+                <thead className="bg-canvas text-left text-muted">
                   <tr>
                     <th className="px-3 py-2">Criterion / risk</th>
                     {LAYERS.map((l) => (
@@ -131,7 +131,7 @@ export function TestPyramidView(props: StageViewProps) {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line">
                   {acs.map((ac) => (
                     <CoverageRow
                       key={ac.id}
@@ -143,14 +143,14 @@ export function TestPyramidView(props: StageViewProps) {
                   {risks.map((r) => (
                     <CoverageRow
                       key={r.risk}
-                      label={<><span className="text-slate-500">Risk{r.severity ? ` (${r.severity})` : ""}:</span> {r.risk}</>}
+                      label={<><span className="text-muted">Risk{r.severity ? ` (${r.severity})` : ""}:</span> {r.risk}</>}
                       tests={tests.tests.filter((t) => t.traces_to.some((x) => /^risk/i.test(x) && x.toLowerCase().includes(r.risk.toLowerCase().slice(0, 30))))}
                       uncovered={report.uncoveredRisks.includes(r.risk)}
                     />
                   ))}
                   {!acs.length && !risks.length && (
                     <tr>
-                      <td colSpan={5} className="px-3 py-2 text-slate-500">
+                      <td colSpan={5} className="px-3 py-2 text-muted">
                         No acceptance criteria or risks found in the earlier plan.
                       </td>
                     </tr>
@@ -237,21 +237,21 @@ function CoverageRow({ label, tests, uncovered }: { label: React.ReactNode; test
 function TestCard({ t }: { t: PlannedTest }) {
   const m = META[t.layer] ?? META.unit;
   return (
-    <div className="rounded-md border border-slate-200 p-3" style={{ borderLeft: `4px solid ${m.color}` }}>
+    <div className="rounded-control border border-line p-3" style={{ borderLeft: `4px solid ${m.color}` }}>
       <div className="flex flex-wrap items-baseline gap-2">
-        <span className="font-mono text-xs text-slate-500">{t.id}</span>
+        <span className="font-mono text-xs text-muted">{t.id}</span>
         <span className={`text-xs font-semibold uppercase ${m.text}`}>{m.label}</span>
         <span className="font-medium">{t.title}</span>
       </div>
-      {t.target && <div className="mt-1 font-mono text-xs text-slate-500">{t.target}</div>}
+      {t.target && <div className="mt-1 font-mono text-xs text-muted">{t.target}</div>}
       <p className="mt-2 text-sm">
-        <span className="font-semibold text-slate-600">Why this layer: </span>
+        <span className="font-semibold text-muted">Why this layer: </span>
         {t.rationale}
       </p>
-      {t.gherkin && <pre className="mt-2 overflow-auto rounded bg-slate-50 p-2 text-xs">{t.gherkin}</pre>}
+      {t.gherkin && <pre className="mt-2 overflow-auto rounded bg-canvas p-2 text-xs">{t.gherkin}</pre>}
       <div className="mt-2 flex flex-wrap gap-1">
         {t.traces_to.map((r) => (
-          <span key={r} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">
+          <span key={r} className="rounded bg-subtle px-1.5 py-0.5 text-[11px] text-ink">
             {r}
           </span>
         ))}

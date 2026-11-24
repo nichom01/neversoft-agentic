@@ -16,14 +16,14 @@ export function DependencyView(props: StageViewProps) {
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Related issues</h3>
-          <Link to="/dependencies" className="text-xs text-slate-500 hover:underline">
+          <Link to="/dependencies" className="text-xs text-brand-700 hover:underline">
             All issues →
           </Link>
         </div>
         {isLoading ? (
-          <p className="text-sm text-slate-500">Building graph…</p>
+          <p className="text-sm text-muted">Building graph…</p>
         ) : error || !graph ? (
-          <p className="text-sm text-red-600">{(error as Error)?.message ?? "No data"}</p>
+          <p className="text-sm text-red-700">{(error as Error)?.message ?? "No data"}</p>
         ) : edges.length ? (
           <>
             <DepGraph graph={graph} focus={n} height={320} />
@@ -32,7 +32,7 @@ export function DependencyView(props: StageViewProps) {
             </div>
             {order.length > 1 && (
               <p className="mt-3 text-sm">
-                <span className="text-slate-500">Suggested order: </span>
+                <span className="text-muted">Suggested order: </span>
                 {order.map((x, i) => (
                   <span key={x}>
                     {i > 0 && " → "}
@@ -46,7 +46,7 @@ export function DependencyView(props: StageViewProps) {
             </div>
           </>
         ) : (
-          <p className="text-sm text-slate-500">No dependencies with other open issues.</p>
+          <p className="text-sm text-muted">No dependencies with other open issues.</p>
         )}
       </section>
       <section>

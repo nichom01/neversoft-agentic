@@ -1,0 +1,136 @@
+{
+  "issue": 8,
+  "summary": "Restyle the Bob pipeline web UI (tools/bob-pipeline/apps/web) so it visually follows the look and feel of Chakra UI Pro (neutral gray surfaces, a single teal/blue accent, Inter typography, subtle borders and shadows, consistent radii and focus rings). This is a visual-only change; behaviour, routes and data flow stay the same.",
+  "approach": "The only website in the repo is the React + Vite + Tailwind CSS v4 dashboard in tools/bob-pipeline/apps/web. Rather than adopting Chakra UI itself (which would mean replacing Tailwind and rewriting every component, and Chakra UI Pro is a paid, proprietary kit), reproduce its visual language on the existing stack: (1) define a design-token layer in index.css using Tailwind v4 @theme (font, accent colour scale, neutral surface and border colours, radii, shadows, focus ring) and set base body styles there instead of in index.html; (2) restyle the shared primitives in components/ui.tsx (Button, StatusBadge, Card, ErrorBox) so every page inherits the new look; (3) restyle the app shell in Layout.tsx (header, nav, poller controls, warning banner); (4) sweep the pages and views (Dashboard, IssuePage, DependenciesPage, DependencyTable, LogView, views/*) replacing ad-hoc slate/emerald utility classes with token-based classes, and align hard-coded hex colours in DepGraph.tsx and TestPyramidView.tsx with the new palette; (5) load Inter from a self-hosted package (no external CDN) with the existing system font stack as fallback. Styling is already centralised in a handful of primitives plus utility classes, so a token-driven restyle touches presentation only and adds no new runtime framework.",
+  "alternatives_considered": [
+    {
+      "option": "Adopt Chakra UI (@chakra-ui/react) components directly",
+      "rejected_because": "Requires removing Tailwind and rewriting every component; much larger scope and risk for a styling request."
+    },
+    {
+      "option": "Use Chakra UI Pro templates verbatim",
+      "rejected_because": "Proprietary and licensed; we only emulate the visual style."
+    },
+    {
+      "option": "Use shadcn/ui or another Tailwind component kit",
+      "rejected_because": "Adds dependencies and generated component code when a token restyle of the existing primitives achieves the goal."
+    },
+    {
+      "option": "Restyle each page ad hoc without tokens",
+      "rejected_because": "Leads to drift and makes later theme tweaks (or dark mode) expensive."
+    }
+  ],
+  "components": [
+    "Web app global styles (index.css, index.html) - add theme tokens, Inter font, base body styles; remove hard-coded body colour classes",
+    "Shared UI primitives (components/ui.tsx) - new button variants, badge palette, card, error box styling",
+    "App shell (components/Layout.tsx) - restyled header, nav, poller controls, warning banner, page container",
+    "Board page (pages/Dashboard.tsx) - filter pills, kanban columns, issue cards, idle list restyled",
+    "Issue detail page (pages/IssuePage.tsx, components/LogView.tsx, views/*) - tabs, panels, log view, markdown prose and diff views restyled",
+    "Dependencies page (pages/DependenciesPage.tsx, components/DependencyTable.tsx, components/DepGraph.tsx) - table, graph node/edge colours and container restyled",
+    "Test pyramid view (views/TestPyramidView.tsx) - level colour palette aligned with the new theme",
+    "Web app dependencies (apps/web/package.json, lockfile) - add self-hosted Inter font package"
+  ],
+  "files_likely_touched": [
+    "tools/bob-pipeline/apps/web/index.html",
+    "tools/bob-pipeline/apps/web/src/index.css",
+    "tools/bob-pipeline/apps/web/src/main.tsx",
+    "tools/bob-pipeline/apps/web/src/components/ui.tsx",
+    "tools/bob-pipeline/apps/web/src/components/Layout.tsx",
+    "tools/bob-pipeline/apps/web/src/components/LogView.tsx",
+    "tools/bob-pipeline/apps/web/src/components/DepGraph.tsx",
+    "tools/bob-pipeline/apps/web/src/components/DependencyTable.tsx",
+    "tools/bob-pipeline/apps/web/src/pages/Dashboard.tsx",
+    "tools/bob-pipeline/apps/web/src/pages/IssuePage.tsx",
+    "tools/bob-pipeline/apps/web/src/pages/DependenciesPage.tsx",
+    "tools/bob-pipeline/apps/web/src/views/base.tsx",
+    "tools/bob-pipeline/apps/web/src/views/DependencyView.tsx",
+    "tools/bob-pipeline/apps/web/src/views/TestPyramidView.tsx",
+    "tools/bob-pipeline/apps/web/package.json",
+    "tools/bob-pipeline/package-lock.json"
+  ],
+  "depends_on_issues": [],
+  "assumptions": [
+    "\"The website\" means the Bob pipeline dashboard in tools/bob-pipeline/apps/web; there is no other web front end in the repo.",
+    "\"In the style of pro.chakra-ui.com\" means visual emulation (look and feel), not use of Chakra UI components or Pro assets/code.",
+    "Tailwind CSS v4 and the existing component structure are retained.",
+    "A light theme is the deliverable; dark mode is not required.",
+    "Inter via a maintained, OFL-licensed self-hosted package (e.g. @fontsource-variable/inter) is acceptable as a new dependency and passes the repo's dependency/vulnerability checks.",
+    "No automated UI tests exist, so verification is typecheck, build and visual review."
+  ],
+  "risks": [
+    {
+      "risk": "Ambiguous target (\"website\", \"style of\") leads to an interpretation the author did not intend",
+      "severity": "medium",
+      "mitigation": "Record the interpretation in the PR; keep tokens centralised so the palette/accent can be changed quickly."
+    },
+    {
+      "risk": "Chakra UI Pro is proprietary; copying its assets or markup could breach licensing",
+      "severity": "medium",
+      "mitigation": "Emulate the general visual language only; do not copy Pro templates, code or assets."
+    },
+    {
+      "risk": "Wide class-name sweep causes visual regressions (board columns, graph, prose tables)",
+      "severity": "medium",
+      "mitigation": "Change primitives first, then pages one at a time; manually review each page and the build output."
+    },
+    {
+      "risk": "New font dependency introduces supply-chain or licensing concern",
+      "severity": "low",
+      "mitigation": "Use a maintained OFL package, pin via lockfile, run dependency scan."
+    },
+    {
+      "risk": "Colour changes reduce contrast or make status/edge/test-level colours indistinguishable",
+      "severity": "medium",
+      "mitigation": "Check contrast against WCAG AA and keep distinct hues per status/edge/level."
+    },
+    {
+      "risk": "Hard-coded hex colours in graph/pyramid are missed and look inconsistent",
+      "severity": "low",
+      "mitigation": "Explicitly include DepGraph.tsx and TestPyramidView.tsx in the sweep and grep for remaining slate- and hex usage."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "The web UI defines a central set of theme tokens (font, accent colour scale, neutral surface/border colours, radii, shadows) in index.css, and the primitives and shell consume them rather than hard-coded one-off colours."
+    },
+    {
+      "id": "AC-2",
+      "criterion": "The app uses Inter (self-hosted, no external CDN request) as its primary font with a system-font fallback."
+    },
+    {
+      "id": "AC-3",
+      "criterion": "Button (default, primary, danger, ghost), StatusBadge (all eight statuses), Card and ErrorBox are restyled in a Chakra-Pro-like manner and have visible keyboard focus states."
+    },
+    {
+      "id": "AC-4",
+      "criterion": "The header/navigation in Layout.tsx is restyled (surface, border, active nav state, poller controls, warning banner) and remains functional and responsive."
+    },
+    {
+      "id": "AC-5",
+      "criterion": "Board, Issue and Dependencies pages all use the new look consistently, with no remaining old-style emerald/ad-hoc palette on primary actions or surfaces."
+    },
+    {
+      "id": "AC-6",
+      "criterion": "The dependency graph and test pyramid colours are aligned with the new palette while edge kinds and test levels remain visually distinguishable."
+    },
+    {
+      "id": "AC-7",
+      "criterion": "Text/background colour combinations used for body text, badges and buttons meet WCAG AA contrast (4.5:1 for normal text)."
+    },
+    {
+      "id": "AC-8",
+      "criterion": "No behaviour, routing, API or data changes; npm run typecheck and npm run build in apps/web pass with no new warnings."
+    },
+    {
+      "id": "AC-9",
+      "criterion": "The UI renders correctly at common desktop widths and degrades acceptably (no horizontal page overflow other than the existing board scroll) at tablet/mobile widths."
+    }
+  ],
+  "open_questions": [
+    "Should dark mode be included, or is a light theme sufficient for this issue?",
+    "Is a sidebar app shell (as in Chakra Pro dashboards) desired, or should the existing top header layout be retained and merely restyled? This plan assumes the top header is retained.",
+    "Is there a preferred accent colour (Chakra Pro's teal/blue) or should the existing emerald be kept as the brand colour?"
+  ],
+  "complexity": "M"
+}

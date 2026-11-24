@@ -19,7 +19,7 @@ export function IssuePage() {
     if (issue && tab === null) setTab(issue.state.stage ?? info?.pipeline.stages[0]?.id ?? null);
   }, [issue, info, tab]);
 
-  if (isLoading || !info) return <p className="text-slate-500">Loading…</p>;
+  if (isLoading || !info) return <p className="text-muted">Loading…</p>;
   if (error || !issue) return <ErrorBox error={error ?? "Not found"} />;
 
   const p = info.pipeline;
@@ -29,34 +29,34 @@ export function IssuePage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/" className="text-sm text-slate-500 hover:underline">
+        <Link to="/" className="text-sm text-muted hover:underline">
           ← Dashboard
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold">
-            <span className="text-slate-400">#{issue.number}</span> {issue.title}
+          <h1 className="text-2xl font-semibold tracking-tight">
+            <span className="text-muted">#{issue.number}</span> {issue.title}
           </h1>
           <StatusBadge status={issue.state.status} />
         </div>
-        <div className="mt-1 flex flex-wrap gap-4 text-sm text-slate-500">
-          <a href={issue.url} target="_blank" rel="noreferrer" className="hover:underline">
+        <div className="mt-1 flex flex-wrap gap-4 text-sm text-muted">
+          <a href={issue.url} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">
             Issue on GitHub ↗
           </a>
           {issue.branchExists && <span className="font-mono">{issue.branch}</span>}
           {issue.prUrl && (
-            <a href={issue.prUrl} target="_blank" rel="noreferrer" className="hover:underline">
+            <a href={issue.prUrl} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">
               Draft PR ↗
             </a>
           )}
         </div>
         {issue.blockedBy.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-slate-500">Blocked by:</span>
+            <span className="text-muted">Blocked by:</span>
             {issue.blockedBy.map((b) => (
               <Link
                 key={b.number}
                 to={`/issues/${b.number}`}
-                className={`rounded-full px-2 py-0.5 text-xs ${b.state === "open" ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-500 line-through"}`}
+                className={`rounded-full px-2 py-0.5 text-xs ${b.state === "open" ? "bg-red-100 text-red-800" : "bg-subtle text-muted line-through"}`}
                 title={b.title}
               >
                 #{b.number} {b.title.length > 40 ? b.title.slice(0, 40) + "…" : b.title}
@@ -74,11 +74,11 @@ export function IssuePage() {
         <Card className="p-5 lg:col-span-2">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="text-lg font-semibold">{stage.name}</h2>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted">
               mode <span className="font-mono">{stage.mode}</span> · {stage.gate === "human" ? "review gate" : "auto"}
             </span>
           </div>
-          {stage.description && <p className="mb-4 text-sm text-slate-600">{stage.description}</p>}
+          {stage.description && <p className="mb-4 text-sm text-muted">{stage.description}</p>}
           <StageView issue={issue} stage={stage} files={outputs} />
         </Card>
 
@@ -94,8 +94,8 @@ export function IssuePage() {
             <h3 className="mb-2 font-semibold">Discussion ({issue.comments.length})</h3>
             <div className="max-h-[32rem] space-y-3 overflow-auto">
               {issue.comments.map((c) => (
-                <div key={c.id} className="border-l-2 border-slate-200 pl-3">
-                  <div className="text-xs text-slate-500">
+                <div key={c.id} className="border-l-2 border-line pl-3">
+                  <div className="text-xs text-muted">
                     {c.author} · {timeAgo(c.createdAt)}
                   </div>
                   <div className="prose prose-sm max-w-none prose-headings:text-sm prose-headings:my-1">
@@ -119,16 +119,16 @@ function Stepper({ p, issue, selected, onSelect }: { p: Pipeline; issue: IssueDe
         const done = s.completed.includes(st.id) || s.status === "done";
         const current = s.stage === st.id && s.status !== "done";
         const cls = done
-          ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+          ? "border-brand-200 bg-brand-50 text-brand-800"
           : current
-            ? "border-indigo-400 bg-indigo-50 text-indigo-800"
-            : "border-slate-200 bg-white text-slate-500";
+            ? "border-brand-700 bg-brand-700 text-white"
+            : "border-line bg-surface text-muted";
         return (
           <div key={st.id} className="flex items-center gap-2">
-            {i > 0 && <span className="text-slate-300">→</span>}
+            {i > 0 && <span className="text-line-strong">→</span>}
             <button
               onClick={() => onSelect(st.id)}
-              className={`rounded-md border px-3 py-1.5 text-sm ${cls} ${selected === st.id ? "ring-2 ring-slate-400" : ""}`}
+              className={`rounded-control border px-3 py-1.5 text-sm transition-colors ${cls} ${selected === st.id ? "ring-2 ring-brand-500 ring-offset-1" : ""}`}
             >
               {done ? "✓ " : current ? "● " : ""}
               {st.name}
@@ -174,12 +174,12 @@ function ActionPanel({ issue, p }: { issue: IssueDetail; p: Pipeline }) {
       <div className="space-y-3">
         <div>
           <h3 className="font-semibold">Review: {stage.name}</h3>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted">
             Approving moves the issue to {nextStage ? <b>{nextStage.name}</b> : "done"}. Requesting changes reruns this stage with your comment as feedback.
           </p>
         </div>
         <textarea
-          className="w-full rounded-md border border-slate-300 p-2 text-sm"
+          className="w-full rounded-control border border-line-strong bg-surface p-2 text-sm"
           rows={4}
           placeholder="Comment (required to request changes, optional note when approving)"
           value={comment}
@@ -195,8 +195,8 @@ function ActionPanel({ issue, p }: { issue: IssueDetail; p: Pipeline }) {
           <Button variant="ghost" disabled={busy} onClick={() => act("park", { parked: true })}>
             Park
           </Button>
-          <label className="ml-auto flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={runHere} onChange={(e) => setRunHere(e.target.checked)} />
+          <label className="ml-auto flex items-center gap-2 text-sm text-muted">
+            <input type="checkbox" className="accent-brand-700" checked={runHere} onChange={(e) => setRunHere(e.target.checked)} />
             Run the next step on this machine now
           </label>
         </div>
@@ -277,7 +277,7 @@ function ActionPanel({ issue, p }: { issue: IssueDetail; p: Pipeline }) {
   }
 
   return (
-    <Card className={`p-4 ${s.status === "review" ? "border-indigo-300" : s.status === "failed" ? "border-red-300" : ""}`}>
+    <Card className={`p-4 ${s.status === "review" ? "border-brand-300" : s.status === "failed" ? "border-red-300" : ""}`}>
       {content}
       {err ? (
         <div className="mt-3">
@@ -285,7 +285,7 @@ function ActionPanel({ issue, p }: { issue: IssueDetail; p: Pipeline }) {
         </div>
       ) : null}
       {messages.length > 0 && (
-        <ul className="mt-3 list-disc rounded-md bg-slate-50 py-2 pl-8 pr-3 text-xs text-slate-700">
+        <ul className="mt-3 list-disc rounded-control bg-canvas py-2 pl-8 pr-3 text-xs text-ink">
           {messages.map((m, i) => (
             <li key={i}>{m}</li>
           ))}
@@ -305,16 +305,16 @@ function Runs({ runs, p }: { runs: RunInfo[]; p: Pipeline }) {
   return (
     <Card className="p-4">
       <h3 className="mb-2 font-semibold">Runs on this machine</h3>
-      {!runs.length && <p className="text-sm text-slate-500">None yet.</p>}
+      {!runs.length && <p className="text-sm text-muted">None yet.</p>}
       <div className="space-y-2">
         {runs.map((r) => (
           <div key={r.id}>
             <button className="flex w-full items-center gap-2 text-left text-sm" onClick={() => setOpen(open === r.id ? null : r.id)}>
               <span className={`h-2 w-2 rounded-full ${dot(r.status)}`} />
               <span className="flex-1">
-                {name(r.stage)} <span className="text-slate-400">#{r.attempt}</span>
+                {name(r.stage)} <span className="text-muted">#{r.attempt}</span>
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted">
                 {r.status} · {duration(r.startedAt, r.finishedAt)}
                 {r.cost ? ` · ${r.cost.toFixed(2)}` : ""}
               </span>
@@ -332,5 +332,5 @@ function Runs({ runs, p }: { runs: RunInfo[]; p: Pipeline }) {
 }
 
 function dot(s: RunInfo["status"]) {
-  return { queued: "bg-sky-400", running: "bg-amber-400 animate-pulse", succeeded: "bg-emerald-500", failed: "bg-red-500", cancelled: "bg-slate-400" }[s];
+  return { queued: "bg-sky-400", running: "bg-amber-400 animate-pulse", succeeded: "bg-emerald-500", failed: "bg-red-500", cancelled: "bg-gray-400" }[s];
 }
