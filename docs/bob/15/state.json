@@ -1,0 +1,62 @@
+{
+  "issue": 15,
+  "pipelineVersion": 2,
+  "history": [
+    {
+      "stage": "hlp",
+      "runId": "d98f5419",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-26T13:23:00.746Z",
+      "cost": 0.31531600000000004,
+      "taskId": "3dc9c51f52f25d0b519fc2f0aeaa795f",
+      "revision": false
+    },
+    {
+      "stage": "deps",
+      "runId": "c82bd008",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-26T13:23:47.678Z",
+      "cost": 0.337972,
+      "taskId": "8bf414ad0fdaf6288d27a511034d3265",
+      "revision": false
+    },
+    {
+      "stage": "llp",
+      "runId": "4fae73d5",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-26T13:25:18.659Z",
+      "cost": 0.47681999999999997,
+      "taskId": "06cf6731f54af67a925a69c31993d28c",
+      "revision": false
+    },
+    {
+      "stage": "tests",
+      "runId": "1a4a57ee",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-26T13:27:32.050Z",
+      "cost": 0.842026,
+      "taskId": "b9ab7f4b590df843b37fb9e604fae86c",
+      "revision": false
+    },
+    {
+      "stage": "implement",
+      "runId": "38cdc179",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-26T13:28:38.804Z",
+      "cost": 0.178282,
+      "taskId": "7c5bfa814fb15e6ca61280b5b3ad3617",
+      "revision": false
+    },
+    {
+      "stage": "changes",
+      "runId": "eef49cd5",
+      "machine": "martinnicholson@Mac",
+      "finishedAt": "2026-11-26T13:29:42.760Z",
+      "cost": 0.532312,
+      "taskId": "ac5a0f8b517720506c7443b4855d22ad",
+      "revision": false
+    }
+  ],
+  "prUrl": "https://github.com/nichom01/neversoft-agentic/pull/16",
+  "prNumber": 16
+}
