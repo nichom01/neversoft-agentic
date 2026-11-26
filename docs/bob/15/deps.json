@@ -1,0 +1,31 @@
+{
+  "issue": 15,
+  "dependencies": [
+    {
+      "issue": 4,
+      "kind": "blocked_by",
+      "reason": "The #15 plan explicitly builds on the #4 sales order model: it reads SalesOrder.getLines() and SalesOrderLine.getLineAmount() and adds only new files. #4 is done and its classes are already on the branch, so the dependency is satisfied.",
+      "shared": [
+        "com.neversoft.sales.SalesOrder",
+        "com.neversoft.sales.SalesOrderLine"
+      ],
+      "confidence": "high"
+    },
+    {
+      "issue": 5,
+      "kind": "overlaps",
+      "reason": "Both deal with the value of a sales order, but no files are shared. #5 computes the order total client-side from quantity and unit price. #15 uses the stored lineAmount in Java. Neither relies on the other, so merge order does not matter.",
+      "shared": [
+        "concept: order total"
+      ],
+      "confidence": "low"
+    }
+  ],
+  "conflicts": [
+    {
+      "issues": [5, 15],
+      "description": "#5 derives line totals from quantity and unit price, while #15 uses the stored lineAmount, which may differ. There is no file conflict and no link between the two today. It would matter only if the score were later surfaced in the UI."
+    }
+  ],
+  "recommended_order": [4, 5, 15]
+}
