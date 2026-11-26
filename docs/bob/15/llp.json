@@ -1,0 +1,137 @@
+{
+  "issue": 15,
+  "changes": [
+    {
+      "path": "src/main/java/com/neversoft/sales/RiskScore.java",
+      "action": "create",
+      "description": "Immutable record pairing a SalesOrder with its integer risk score. The compact constructor rejects a null order (Objects.requireNonNull) and a score outside 1-10 (IllegalArgumentException). Not stored on SalesOrder, so equals/hashCode/toString and the reflection tests are unaffected.",
+      "symbols": ["RiskScore", "RiskScore(SalesOrder order, int score)", "order()", "score()"],
+      "covers": ["AC-1", "AC-5", "AC-10"]
+    },
+    {
+      "path": "src/main/java/com/neversoft/sales/SalesOrderRiskScorer.java",
+      "action": "create",
+      "description": "Final stateless class. score(Collection<SalesOrder>) returns an immutable List<RiskScore> in input order; null/empty input returns an empty list; a null element throws NullPointerException. Per order: value = sum of non-null lineAmount (null = 0, floored at 0); valueScore = 1 + count of VALUE_BOUNDS <= value (BigDecimal.compareTo); lineScore = 1 + count of LINE_BOUNDS <= lines.size(); final = max(valueScore, lineScore) clamped to 1-10. Bounds are package-private constants in one place: VALUE_BOUNDS = 100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000; LINE_BOUNDS = 2, 4, 6, 10, 15, 20, 30, 50, 100. Bands are lower-inclusive. Rule and bands are documented in class Javadoc. No mutation of inputs and no cross-order state.",
+      "symbols": ["SalesOrderRiskScorer", "score", "scoreOrder", "orderValue", "valueScore", "lineScore", "VALUE_BOUNDS", "LINE_BOUNDS", "MIN_SCORE", "MAX_SCORE"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8", "AC-9", "AC-11"]
+    },
+    {
+      "path": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java",
+      "action": "create",
+      "description": "Dependency-free test harness in the style of SalesOrderTest (main, FAILURES list, test/check/eq helpers, System.exit(1) on failure). Tests R-1 to R-12 cover ordering, bounds, null/empty handling, null amounts, negative totals, boundary values on both sides of every bound for both factors, monotonicity, non-mutation and independence from other orders. Class Javadoc holds the javac/java commands.",
+      "symbols": ["SalesOrderRiskScorerTest", "main", "test", "check", "eq"],
+      "covers": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8", "AC-9", "AC-10", "AC-11"]
+    }
+  ],
+  "interfaces": [
+    {
+      "name": "RiskScore",
+      "signature": "public record RiskScore(SalesOrder order, int score)",
+      "notes": "Compact constructor: order non-null (NullPointerException), score in [1,10] (IllegalArgumentException)."
+    },
+    {
+      "name": "SalesOrderRiskScorer.score",
+      "signature": "public static List<RiskScore> score(Collection<SalesOrder> orders)",
+      "notes": "Null or empty returns List.of(). Null element throws NullPointerException. Result is immutable and in input order, one entry per input element."
+    },
+    {
+      "name": "SalesOrderRiskScorer.scoreOrder",
+      "signature": "static int scoreOrder(SalesOrder order)",
+      "notes": "Package-private. max(valueScore(orderValue), lineScore(lines.size())) clamped to MIN_SCORE..MAX_SCORE."
+    },
+    {
+      "name": "SalesOrderRiskScorer.orderValue",
+      "signature": "static BigDecimal orderValue(SalesOrder order)",
+      "notes": "Package-private. Sum of non-null lineAmount; null counts as zero; negative total returns BigDecimal.ZERO."
+    },
+    {
+      "name": "SalesOrderRiskScorer.valueScore",
+      "signature": "static int valueScore(BigDecimal value)",
+      "notes": "Package-private. 1 + number of VALUE_BOUNDS b with b.compareTo(value) <= 0; scale-insensitive."
+    },
+    {
+      "name": "SalesOrderRiskScorer.lineScore",
+      "signature": "static int lineScore(int lineCount)",
+      "notes": "Package-private. 1 + number of LINE_BOUNDS b with b <= lineCount."
+    },
+    {
+      "name": "SalesOrderRiskScorer constants",
+      "signature": "static final int MIN_SCORE = 1; static final int MAX_SCORE = 10; static final List<BigDecimal> VALUE_BOUNDS; static final List<Integer> LINE_BOUNDS",
+      "notes": "Package-private so tests can iterate bounds. Each bounds list has 9 strictly ascending lower-inclusive entries for scores 2..10."
+    }
+  ],
+  "data_changes": [],
+  "test_approach": [
+    {
+      "layer": "smoke",
+      "what": "Compile Customer, SalesOrderLine, SalesOrder, RiskScore, SalesOrderRiskScorer, SalesOrderTest and SalesOrderRiskScorerTest with javac --release 25 -Xlint:all -Werror; run SalesOrderTest and SalesOrderRiskScorerTest with java and check exit code 0. Check git status shows only the three new source files plus docs/bob/15.",
+      "covers": ["AC-10", "AC-11"]
+    },
+    {
+      "layer": "bdd",
+      "what": "R-1: three orders (low, mid, high) give three results in input order, same order instance at each position, every score in 1-10.",
+      "covers": ["AC-1"]
+    },
+    {
+      "layer": "bdd",
+      "what": "R-2: an order with no lines, and orders whose line amounts are all null or all zero, score 1 and do not throw.",
+      "covers": ["AC-4", "AC-8"]
+    },
+    {
+      "layer": "bdd",
+      "what": "R-3: an order of value 1,000,000 and an order of 500 lines each score exactly 10.",
+      "covers": ["AC-5"]
+    },
+    {
+      "layer": "bdd",
+      "what": "R-4: score(null) and score(List.of()) return an empty list; a null element at first, middle and last position throws NullPointerException.",
+      "covers": ["AC-7"]
+    },
+    {
+      "layer": "bdd",
+      "what": "R-5: an order scores the same alone and in a mixed list; orders and lines are unchanged after scoring; a duplicated order yields two results.",
+      "covers": ["AC-9", "AC-1"]
+    },
+    {
+      "layer": "component",
+      "what": "R-6: end-to-end score over value-dominated, line-dominated and mixed orders equals max(valueScore, lineScore) (1 line of 60000 gives 9; 20 lines of 1 gives 7).",
+      "covers": ["AC-2", "AC-3"]
+    },
+    {
+      "layer": "component",
+      "what": "R-7: returned list is immutable (add throws UnsupportedOperationException); RiskScore rejects a null order and scores 0 and 11.",
+      "covers": ["AC-1", "AC-5"]
+    },
+    {
+      "layer": "unit",
+      "what": "R-8: for each VALUE_BOUNDS entry b at index i, valueScore(b - 0.01) is i+1 and valueScore(b) is i+2; valueScore(0) is 1; a huge value gives 10.",
+      "covers": ["AC-6", "AC-3"]
+    },
+    {
+      "layer": "unit",
+      "what": "R-9: for each LINE_BOUNDS entry b at index i, lineScore(b - 1) is i+1 and lineScore(b) is i+2; lineScore(0) is 1; Integer.MAX_VALUE gives 10.",
+      "covers": ["AC-6", "AC-3"]
+    },
+    {
+      "layer": "unit",
+      "what": "R-10: sweeping value 0 to 150000 and line count 0 to 150, valueScore, lineScore and scoreOrder never decrease as either factor rises with the other held fixed.",
+      "covers": ["AC-3"]
+    },
+    {
+      "layer": "unit",
+      "what": "R-11: orderValue sums non-null amounts, treats null as zero, floors a negative total (50 and -80) at zero; valueScore gives the same result for 100, 100.0 and 100.00.",
+      "covers": ["AC-8", "AC-2", "AC-4"]
+    },
+    {
+      "layer": "unit",
+      "what": "R-12: both bound lists have 9 strictly ascending entries; MIN_SCORE is 1 and MAX_SCORE is 10.",
+      "covers": ["AC-6"]
+    }
+  ],
+  "rollout": "Purely additive. Create RiskScore.java, then SalesOrderRiskScorer.java, then SalesOrderRiskScorerTest.java in one commit and verify with the javac/java commands in the test class Javadoc (compiling Customer, SalesOrderLine, SalesOrder, RiskScore, SalesOrderRiskScorer, SalesOrderTest, SalesOrderRiskScorerTest). No flags and no compatibility concerns; nothing calls the scorer yet. Exposure over REST or UI is a follow-up.",
+  "open_questions": [
+    "Business confirmation of the value bands and line-count bands (implementer defaults chosen in this plan).",
+    "Confirmation that combining sub-scores by max is wanted rather than an average.",
+    "Whether a follow-up should expose scoring through tools/warehouse-server or the sales-orders UI (out of scope here)."
+  ]
+}
