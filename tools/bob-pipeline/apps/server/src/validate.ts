@@ -23,8 +23,8 @@ export function validatePipeline(cfg: LoadedConfig): ValidationResult {
 
   if (!fs.existsSync(path.join(cfg.repoPath, ".git"))) errors.push(`repo.path does not point at a git repo: ${cfg.repoPath}`);
 
-  // Bob modes defined in the repo.
-  const modesFile = path.join(cfg.repoPath, ".bob", "custom_modes.yaml");
+  // Bob modes shipped with the tool (installed into each worktree at run time).
+  const modesFile = path.join(cfg.bobDir, "custom_modes.yaml");
   let modes: string[] | null = null;
   if (fs.existsSync(modesFile)) {
     try {
@@ -51,7 +51,7 @@ export function validatePipeline(cfg: LoadedConfig): ValidationResult {
     if (modes && !modes.includes(s.mode) && !builtInModes.includes(s.mode)) {
       errors.push(`${where}: mode "${s.mode}" is not in .bob/custom_modes.yaml`);
     }
-    if (!fs.existsSync(path.join(cfg.repoPath, ".bob", `rules-${s.mode}`)) && modes?.includes(s.mode)) {
+    if (!fs.existsSync(path.join(cfg.bobDir, `rules-${s.mode}`)) && modes?.includes(s.mode)) {
       warnings.push(`${where}: no .bob/rules-${s.mode}/ folder (templates/instructions for the mode)`);
     }
 

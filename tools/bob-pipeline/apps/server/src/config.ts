@@ -14,6 +14,8 @@ export interface LoadedConfig {
   /** Directory containing pipeline.yaml; prompt/schema paths are relative to it. */
   pipelineDir: string;
   pipelinePath: string;
+  /** The tool's own .bob folder (modes and rules), installed into each worktree before Bob runs. */
+  bobDir: string;
   /** Absolute path of the developer's repo clone. */
   repoPath: string;
   /** Absolute root for this repo's worktrees. */
@@ -40,7 +42,8 @@ export function loadConfig(configPath = process.env.BOB_PIPELINE_CONFIG): Loaded
   const worktreesRoot = path.join(path.resolve(expandHome(pipeline.worktrees_dir)), repoKey);
   const dataDir = path.resolve(process.env.BOB_PIPELINE_DATA ?? path.join(TOOL_DIR, ".data"));
   fs.mkdirSync(dataDir, { recursive: true });
-  return { pipeline, pipelineDir, pipelinePath, repoPath, worktreesRoot, dataDir };
+  const bobDir = path.join(pipelineDir, ".bob");
+  return { pipeline, pipelineDir, pipelinePath, bobDir, repoPath, worktreesRoot, dataDir };
 }
 
 export function stageById(p: Pipeline, id: string): Stage {

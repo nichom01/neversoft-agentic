@@ -1,6 +1,6 @@
 # Bob pipeline definition. This file IS the process.
 #
-# - Each stage runs one Bob custom mode (see /.bob/custom_modes.yaml).
+# - Each stage runs one Bob custom mode (see .bob/custom_modes.yaml next to this file).
 # - Labels are derived from stage ids:  bob:<id>-review, bob:<id>-approved
 #   plus bob:start, bob:working, bob:revise, bob:failed, bob:done, bob:parked.
 # - Paths for prompts and schemas are relative to this file.

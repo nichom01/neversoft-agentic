@@ -78,19 +78,38 @@ export class Git {
       await this.git(["reset", "--hard", startPoint], wt);
       await this.git(["clean", "-fd", "-e", SCRATCH_DIR], wt);
     }
-    await this.excludeScratch();
+    const installed = await this.installBobConfig(wt);
+    await this.exclude([`/${SCRATCH_DIR}/`, ...installed]);
     return wt;
   }
 
-  /** Keep the scratch dir out of commits without touching the repo's .gitignore. */
-  private async excludeScratch() {
+  /**
+   * Copy the tool's .bob folder (modes and rules) into the worktree, where Bob
+   * looks for it. The copies are git-excluded so they never reach the branch.
+   * Returns the exclude patterns for what was copied. If the repo tracks its
+   * own .bob/ (e.g. older branches), that one is used as is.
+   */
+  private async installBobConfig(wt: string): Promise<string[]> {
+    if (!fs.existsSync(this.cfg.bobDir)) return [];
+    if ((await this.git(["ls-files", ".bob"], wt)).trim()) return [];
+    const patterns: string[] = [];
+    for (const entry of fs.readdirSync(this.cfg.bobDir, { withFileTypes: true })) {
+      if (entry.name !== "custom_modes.yaml" && !(entry.isDirectory() && entry.name.startsWith("rules-"))) continue;
+      fs.cpSync(path.join(this.cfg.bobDir, entry.name), path.join(wt, ".bob", entry.name), { recursive: true });
+      patterns.push(`/.bob/${entry.name}${entry.isDirectory() ? "/" : ""}`);
+    }
+    return patterns;
+  }
+
+  /** Keep pipeline files out of commits without touching the repo's .gitignore. */
+  private async exclude(patterns: string[]) {
     const common = await this.git(["rev-parse", "--git-common-dir"]);
     const file = path.resolve(this.cfg.repoPath, common, "info", "exclude");
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
-    if (!current.split("\n").includes(`/${SCRATCH_DIR}/`)) {
-      fs.appendFileSync(file, `${current.endsWith("\n") || !current ? "" : "\n"}/${SCRATCH_DIR}/\n`);
-    }
+    const have = new Set(current.split("\n"));
+    const missing = patterns.filter((p) => !have.has(p));
+    if (missing.length) fs.appendFileSync(file, `${current.endsWith("\n") || !current ? "" : "\n"}${missing.join("\n")}\n`);
   }
 
   /** Stage, commit and push. Returns false if there was nothing to commit. */
