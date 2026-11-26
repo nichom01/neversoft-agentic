@@ -1,0 +1,15 @@
+{
+  "issue": 17,
+  "pipelineVersion": 2,
+  "history": [
+    {
+      "stage": "hlp",
+      "runId": "9c5860a5",
+      "machine": "martinnicholson@mac.l3g-gb.ibm.com",
+      "finishedAt": "2026-11-26T14:39:43.175Z",
+      "cost": 0.33338,
+      "taskId": "1a25903ed9f6534a921126b4ef531a6d",
+      "revision": false
+    }
+  ]
+}

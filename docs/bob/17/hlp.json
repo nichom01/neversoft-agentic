@@ -1,0 +1,157 @@
+{
+  "issue": 17,
+  "summary": "Add OpenTelemetry tracing and metrics to the only running service in the repo, tools/warehouse-server (Fastify and built-in SQLite). Export over OTLP, configured through standard OTEL_* environment variables, and disabled by default so existing behaviour and tests are unchanged.",
+  "approach": "The issue is one line with no scope. The repo has one runtime service: the Fastify API in tools/warehouse-server. The Java domain model is a plain library with no process to instrument, and sales-orders-ui is a standalone browser app, so this plan scopes to the server. Add the OpenTelemetry Node SDK as a small, separate bootstrap module that registers tracer and meter providers with a service.name resource and an OTLP exporter, and starts only when enabled by configuration. It must load before Fastify and node:http are imported; because the package is ESM running under tsx, preload it with Node's --import flag in the dev and start scripts rather than importing it from index.ts. HTTP and Fastify instrumentations then give a span per request with route, method and status, plus standard HTTP server metrics. node:sqlite has no auto-instrumentation, so database spans are optional and kept minimal. The OTLP endpoint comes only from OTEL_EXPORTER_OTLP_ENDPOINT with no hardcoded default; non-local endpoints must use HTTPS; auth headers come from OTEL_EXPORTER_OTLP_HEADERS and are never committed or logged. Telemetry is off unless configured, and shutdown flushes pending data. Existing tests build the app through buildApp and must not need a collector.",
+  "alternatives_considered": [
+    {
+      "option": "Instrument the Java domain model in src/main/java",
+      "rejected_because": "It is a dependency-free library with no runtime, no build tool and no process. Adding the OpenTelemetry Java API would break the repo's no-dependency javac harness."
+    },
+    {
+      "option": "Add browser instrumentation to warehouse-ui and sales-orders-ui",
+      "rejected_because": "The issue gives no signal that frontend telemetry is wanted. It adds bundle weight and needs CORS and collector exposure. It can be a follow-up."
+    },
+    {
+      "option": "Manual spans only, with no auto-instrumentation",
+      "rejected_because": "More code to maintain, and it misses the standard HTTP semantic conventions."
+    },
+    {
+      "option": "Import the SDK at the top of index.ts instead of preloading",
+      "rejected_because": "Under ESM the HTTP and Fastify modules would already be loaded, so auto-instrumentation would silently not patch them."
+    },
+    {
+      "option": "Always-on telemetry with a default collector endpoint",
+      "rejected_because": "It would add startup noise and failed export attempts for developers and CI, and a default endpoint is a hardcoded network target."
+    },
+    {
+      "option": "Vendor-specific agent or SDK",
+      "rejected_because": "OTLP is vendor-neutral, and the issue names OpenTelemetry."
+    }
+  ],
+  "components": [
+    "tools/warehouse-server telemetry bootstrap (new): configures the Node SDK, resource attributes, OTLP trace and metric exporters, HTTP and Fastify instrumentations, enable/disable switch and shutdown flush",
+    "tools/warehouse-server start-up scripts and package.json: add OpenTelemetry dependencies and preload the bootstrap in dev and start",
+    "tools/warehouse-server/src/index.ts: flush and shut down telemetry on process exit, with no change to routes or response bodies",
+    "tools/warehouse-server/src/app.ts: expected to need no change because auto-instrumentation attaches externally; a small change only if span error status or route naming needs help",
+    "tools/warehouse-server tests (new): telemetry off by default, spans produced for API requests when enabled (in-memory exporter), existing suites unchanged",
+    "Root package-lock.json and workspace install: new dependencies resolved at the workspace root",
+    "Documentation (new section): OTEL_* variables, local collector usage and how to turn telemetry on",
+    "src/main/java, sales-orders-ui, tools/warehouse-ui, tools/bob-pipeline: read only, no changes"
+  ],
+  "files_likely_touched": [
+    "tools/warehouse-server/package.json",
+    "tools/warehouse-server/src/telemetry.ts",
+    "tools/warehouse-server/src/telemetry.test.ts",
+    "tools/warehouse-server/src/index.ts",
+    "package-lock.json",
+    "tools/warehouse-server/README.md",
+    ".gitignore"
+  ],
+  "depends_on_issues": [],
+  "assumptions": [
+    "\"This project\" means the runnable service, tools/warehouse-server. The Java library and the frontends are out of scope.",
+    "Traces and metrics are wanted. Logs signal export is not required, because the server uses Fastify's own logger.",
+    "OTLP is the export protocol. An OTLP-compatible collector or backend exists outside this repo, and no collector is bundled here.",
+    "Telemetry is opt-in through environment configuration, in line with the existing environment-driven settings (PORT, LOG_LEVEL, WAREHOUSE_DATA_DIR).",
+    "Node 22.13 or later (the current engine requirement) is compatible with the current OpenTelemetry JS SDK.",
+    "The server keeps binding to 127.0.0.1, and telemetry adds no new listening ports."
+  ],
+  "risks": [
+    {
+      "risk": "The issue is under-specified, so the intended scope (server only, frontends, Java) may differ from this plan",
+      "severity": "medium",
+      "mitigation": "State the scope assumption explicitly and raise it in the open questions before implementation"
+    },
+    {
+      "risk": "ESM and tsx can stop auto-instrumentation from patching modules if the SDK loads too late",
+      "severity": "high",
+      "mitigation": "Preload the bootstrap with --import in all start scripts and test that spans are produced through the real server entry path"
+    },
+    {
+      "risk": "The OpenTelemetry JS packages move quickly and have separate experimental and stable version lines, so versions may be mismatched",
+      "severity": "medium",
+      "mitigation": "Use matching current releases, pin them via the lock file, and verify with a spans test"
+    },
+    {
+      "risk": "The exporter adds overhead or fails when the collector is down",
+      "severity": "medium",
+      "mitigation": "Use batch processors with bounded timeouts, opt-in enablement, and a test with an unreachable endpoint"
+    },
+    {
+      "risk": "Telemetry leaks sensitive data (headers, credentials, VINs, query strings)",
+      "severity": "medium",
+      "mitigation": "Rely on default semantic-convention attributes only, never log exporter headers, and add an assertion test on span attributes"
+    },
+    {
+      "risk": "The node:sqlite driver has no auto-instrumentation, so database time is invisible",
+      "severity": "low",
+      "mitigation": "Accept for the first iteration, or add a thin manual span around WarehouseDb as a follow-up"
+    },
+    {
+      "risk": "New dependencies enlarge the workspace install and the lock file",
+      "severity": "low",
+      "mitigation": "Add dependencies only to tools/warehouse-server and keep them limited to the SDK, OTLP exporters and the two instrumentations"
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "criterion": "With no OTEL_* configuration, the server starts and serves requests exactly as before, makes no network calls to any collector, and logs no telemetry errors."
+    },
+    {
+      "id": "AC-2",
+      "criterion": "When telemetry is enabled by configuration, each request to an /api/vehicles route produces a trace span with HTTP method, route and status code, under a configurable service.name (default warehouse-server)."
+    },
+    {
+      "id": "AC-3",
+      "criterion": "HTTP server request metrics, such as request count and duration, are recorded and exported when telemetry is enabled."
+    },
+    {
+      "id": "AC-4",
+      "criterion": "A request that ends in a 5xx response produces a span with error status. A 4xx response (validation, 404, 409) is not marked as a server error."
+    },
+    {
+      "id": "AC-5",
+      "criterion": "The export endpoint, protocol, headers and sampling are set only through standard OTEL_* environment variables. No endpoint, credential or token is hardcoded or committed, and header values are never logged."
+    },
+    {
+      "id": "AC-6",
+      "criterion": "Non-local OTLP endpoints must use HTTPS. Exporter timeouts are bounded, so an unreachable collector cannot hang requests or shutdown."
+    },
+    {
+      "id": "AC-7",
+      "criterion": "If the collector is unreachable, API responses and latency are unaffected, and the server does not crash."
+    },
+    {
+      "id": "AC-8",
+      "criterion": "On normal termination the server flushes pending telemetry and shuts the SDK down."
+    },
+    {
+      "id": "AC-9",
+      "criterion": "The telemetry bootstrap loads before Fastify and the HTTP module in both npm run dev and npm run start, so auto-instrumentation takes effect."
+    },
+    {
+      "id": "AC-10",
+      "criterion": "Request bodies, query strings containing user data, and VIN values are not added to span attributes beyond default HTTP semantic conventions."
+    },
+    {
+      "id": "AC-11",
+      "criterion": "Existing tools/warehouse-server tests, typecheck, and root npm run test:warehouse and npm run typecheck pass with no new warnings. New tests cover the default-off behaviour and span creation using an in-memory exporter and no network."
+    },
+    {
+      "id": "AC-12",
+      "criterion": "Documentation lists the supported environment variables and how to try it against a local collector."
+    },
+    {
+      "id": "AC-13",
+      "criterion": "New dependencies are the latest stable, actively maintained OpenTelemetry packages, are pinned through the lock file, and have no known high or critical vulnerabilities."
+    }
+  ],
+  "open_questions": [
+    "Is the scope the warehouse server only, or should the browser UIs and the Java model also be instrumented?",
+    "Which backend or collector will receive the data (for example an OpenTelemetry Collector, Jaeger or a vendor)? This affects the protocol (HTTP or gRPC) and the documentation examples.",
+    "Are database spans around WarehouseDb operations wanted in this issue?",
+    "Are metrics wanted as well as traces, or traces only? This plan assumes both."
+  ],
+  "complexity": "M"
+}
