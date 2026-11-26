@@ -1,0 +1,18 @@
+{
+  "issue": 17,
+  "dependencies": [
+    {
+      "issue": 6,
+      "kind": "blocked_by",
+      "reason": "#17 instruments tools/warehouse-server (Fastify API and node:sqlite), which #6 creates. #17 edits that package's package.json and src/index.ts, and #6's plan lists the same two files. #6 is already done and approved, and the server is present in this worktree, so the dependency is already met.",
+      "shared": [
+        "tools/warehouse-server/package.json",
+        "tools/warehouse-server/src/index.ts",
+        "tools/warehouse-server"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "conflicts": [],
+  "recommended_order": [6, 17]
+}
