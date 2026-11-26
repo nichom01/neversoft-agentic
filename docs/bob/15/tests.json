@@ -1,0 +1,187 @@
+{
+  "issue": 15,
+  "tests": [
+    {
+      "id": "T-1",
+      "layer": "smoke",
+      "title": "Everything compiles under strict flags and both test classes pass",
+      "target": "Shell from repo root: javac --release 25 -Xlint:all -Werror over Customer, SalesOrderLine, SalesOrder, RiskScore, SalesOrderRiskScorer, SalesOrderTest, SalesOrderRiskScorerTest; then java SalesOrderTest and java SalesOrderRiskScorerTest, all exit 0",
+      "rationale": "The is-it-alive check for a library with no deployment. Only this proves the whole set compiles together with -Xlint:all -Werror and that the pre-existing SalesOrderTest still passes.",
+      "traces_to": ["AC-10", "AC-11"]
+    },
+    {
+      "id": "T-2",
+      "layer": "smoke",
+      "title": "Existing model files are untouched",
+      "target": "git status / git diff --stat: only RiskScore.java, SalesOrderRiskScorer.java, SalesOrderRiskScorerTest.java and docs/bob/15/* may change; Customer.java, SalesOrder.java, SalesOrderLine.java show no diff",
+      "rationale": "Unchanged is a property of the working tree, not of runtime behaviour, so only a repo-level check can prove it.",
+      "traces_to": ["AC-10"]
+    },
+    {
+      "id": "T-3",
+      "layer": "smoke",
+      "title": "A failing test makes the harness exit non-zero",
+      "target": "Shell: compile a temp copy of SalesOrderRiskScorer.java with a deliberately changed VALUE_BOUNDS entry together with the unchanged test class, run java, expect exit code 1 and a listed failure. Repo sources are not touched.",
+      "rationale": "AC-11 requires non-zero exit on failure. Only running a deliberately broken build proves the System.exit(1) path is wired. A passing run cannot show it.",
+      "traces_to": ["AC-11"]
+    },
+    {
+      "id": "T-4",
+      "layer": "bdd",
+      "title": "One result per order, in input order",
+      "gherkin": "Given three sales orders: a low order, a mid order and a high order, in that sequence\nWhen I score the collection\nThen I get exactly three results\nAnd the results are in the same sequence as the input\nAnd each result's order is the same instance as the input order at that position\nAnd each score is an integer between 1 and 10 inclusive",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-1)",
+      "rationale": "Headline behaviour of the issue, seen by the caller through the public score API and spanning the scorer and RiskScore. Ordering and cardinality cannot be proved by unit tests of the helpers.",
+      "traces_to": ["AC-1"]
+    },
+    {
+      "id": "T-5",
+      "layer": "bdd",
+      "title": "Empty and valueless orders score the minimum without throwing",
+      "gherkin": "Given an order with no lines\nAnd an order whose lines all have a null lineAmount\nAnd an order whose lines all have a lineAmount of zero\nAnd an order with one line of 500 and a second line with a null lineAmount\nWhen I score them\nThen no exception is thrown\nAnd the first three orders score 1\nAnd the fourth order scores the same as an order with a single line of 500",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-2)",
+      "rationale": "Caller-visible edge-case behaviour through the public path with real SalesOrderLine objects. The null-amount arithmetic itself is covered at unit level in T-17.",
+      "traces_to": ["AC-4", "AC-8"]
+    },
+    {
+      "id": "T-6",
+      "layer": "bdd",
+      "title": "Very large orders are capped at 10",
+      "gherkin": "Given an order with one line of value 1,000,000\nAnd an order with 500 lines of value 1 each\nAnd an order with 500 lines of value 1,000,000 each\nWhen I score them\nThen every score is exactly 10",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-3)",
+      "rationale": "The cap is a user-visible promise and must hold through the clamp in scoreOrder, which helper-level tests do not exercise. The combined case covers both factors saturating at once.",
+      "traces_to": ["AC-5"]
+    },
+    {
+      "id": "T-7",
+      "layer": "bdd",
+      "title": "Null and empty input",
+      "gherkin": "Given a null collection\nWhen I score it\nThen the result is an empty list\n\nGiven an empty collection\nWhen I score it\nThen the result is an empty list\n\nGiven a collection with a null element at the first, middle or last position\nWhen I score it\nThen a NullPointerException is thrown",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-4)",
+      "rationale": "Public contract on the score entry point, the only place that handles null input. The null element is checked at three positions so a check covering only the first element cannot pass.",
+      "traces_to": ["AC-7"]
+    },
+    {
+      "id": "T-8",
+      "layer": "bdd",
+      "title": "Scoring is side-effect free and independent of the rest of the set",
+      "gherkin": "Given an order, and a deep copy of it built beforehand\nWhen I score the order on its own\nAnd I score it again inside a list with a very large order and a very small order\nThen both scores are equal\nAnd the order still equals the pre-built copy, including every line",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-5, part 1)",
+      "rationale": "Independence from the other items is a property of the whole score call and is the reason relative scoring was rejected. Cannot be proved at helper level. SalesOrder.equals is value-based and covers lines, so it detects mutation.",
+      "traces_to": ["AC-9"]
+    },
+    {
+      "id": "T-9",
+      "layer": "bdd",
+      "title": "A bigger or busier order never scores lower",
+      "gherkin": "Given a list of orders with one line each and increasing values 0, 99, 100, 500, 5,000, 100,000\nAnd a list of orders with a fixed value and 1, 2, 4, 10, 50, 100 lines\nWhen I score each list\nThen in each list every score is greater than or equal to the previous score",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-6, monotonic part)",
+      "rationale": "The issue's wording implies more value or lines means more risk. This shows it from the caller's side with real orders and checks the property survives the full score path. The exhaustive sweep is at unit level in T-16.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-10",
+      "layer": "bdd",
+      "title": "Only value and line count matter",
+      "gherkin": "Given two orders with the same total value and the same number of lines\nBut different status, customer, id, quantity, unit price and line descriptions\nWhen I score them\nThen both receive the same score",
+      "target": "src/test/java/com/neversoft/sales/SalesOrderRiskScorerTest.java (R-6, input-independence part)",
+      "rationale": "AC-2 is about what the score is derived from. Only a full score call over orders that differ in other fields can show those fields are ignored.",
+      "traces_to": ["AC-2"]
+    },
+    {
+      "id": "T-11",
+      "layer": "component",
+      "title": "Combination rule is the higher of the two sub-scores",
+      "target": "SalesOrderRiskScorer.score over real SalesOrder and SalesOrderLine graphs, in SalesOrderRiskScorerTest (R-6): 1 line of 60,000 -> 9; 20 lines of 1 -> 7; 5 lines of 30,000 (150,000) -> 10; 4 lines totalling 600 -> 3",
+      "rationale": "The max rule is the seam between the value factor, the line factor and the clamp, and is a documented business assumption. Unit tests of each factor cannot show the factors are combined correctly, and BDD is too coarse to pin the rule.",
+      "traces_to": ["AC-2", "AC-3", "risk: Thresholds and combination rule are a business decision the issue does not specify, so scores may not match the author's expectation"]
+    },
+    {
+      "id": "T-12",
+      "layer": "component",
+      "title": "Result types are immutable and validated",
+      "target": "RiskScore and the list returned by SalesOrderRiskScorer.score, in SalesOrderRiskScorerTest (R-7): add on the list throws UnsupportedOperationException; new RiskScore(null, 5) throws NullPointerException; scores 0 and 11 throw IllegalArgumentException; scores 1 and 10 are accepted",
+      "rationale": "Contract of the new public types at the boundary the caller sees. It is not scoring logic, so not a BDD scenario, and it needs real SalesOrder instances for the order() accessor.",
+      "traces_to": ["AC-1", "AC-5"]
+    },
+    {
+      "id": "T-13",
+      "layer": "component",
+      "title": "Equal orders are not collapsed",
+      "target": "SalesOrderRiskScorer.score in SalesOrderRiskScorerTest (R-5, part 2): same instance twice gives two results; two distinct but equal orders give two results with their own instances; a LinkedHashSet input is scored in iteration order",
+      "rationale": "The HLP chose a list return type to avoid equals/hashCode key collisions. This checks that choice at the score boundary, which helper unit tests cannot see.",
+      "traces_to": ["AC-1", "risk: SalesOrder is mutable and its equals/hashCode are value-based, so using orders as map keys could collapse equal orders"]
+    },
+    {
+      "id": "T-14",
+      "layer": "unit",
+      "title": "Value band boundaries",
+      "target": "SalesOrderRiskScorer.valueScore and VALUE_BOUNDS in SalesOrderRiskScorerTest (R-8): for each bound b at index i, valueScore(b - 0.01) is i + 1 and valueScore(b) is i + 2; valueScore(0) is 1; valueScore(huge) is 10",
+      "rationale": "Pure logic with 9 boundaries. Looping over the real constant keeps the test right if the bands are retuned, and can only be done at helper level.",
+      "traces_to": ["AC-6", "AC-3", "AC-5"]
+    },
+    {
+      "id": "T-15",
+      "layer": "unit",
+      "title": "Line count band boundaries",
+      "target": "SalesOrderRiskScorer.lineScore and LINE_BOUNDS in SalesOrderRiskScorerTest (R-9): for each bound b at index i, lineScore(b - 1) is i + 1 and lineScore(b) is i + 2; lineScore(0) is 1; lineScore(Integer.MAX_VALUE) is 10",
+      "rationale": "Same as T-14 for the second factor. AC-6 requires both factors, so each has its own test.",
+      "traces_to": ["AC-6", "AC-3", "AC-5"]
+    },
+    {
+      "id": "T-16",
+      "layer": "unit",
+      "title": "Monotonicity sweep",
+      "target": "valueScore, lineScore and scoreOrder in SalesOrderRiskScorerTest (R-10): sweep value 0 to 150,000 and line count 0 to 150; sub-scores never decrease; scoreOrder never decreases when one factor rises with the other held fixed, at several fixed values",
+      "rationale": "Monotonicity is a property over many inputs, so it needs a cheap sweep that is impractical through score with real order graphs. T-9 covers the same promise with a few examples at BDD level.",
+      "traces_to": ["AC-3"]
+    },
+    {
+      "id": "T-17",
+      "layer": "unit",
+      "title": "Order value arithmetic",
+      "target": "SalesOrderRiskScorer.orderValue in SalesOrderRiskScorerTest (R-11, part 1): amounts are summed; null lineAmount counts as zero; no lines gives zero; negative total (50 and -80) gives zero; 200 and -50 gives 150",
+      "rationale": "Branch logic (null, empty, negative) that is cheapest to prove directly on the helper. It is the only test of the negative clamp mitigation.",
+      "traces_to": ["AC-8", "AC-4", "AC-2", "risk: Negative lineAmount (for example credits) could push an order's total below zero"]
+    },
+    {
+      "id": "T-18",
+      "layer": "unit",
+      "title": "Scale-insensitive comparison",
+      "target": "SalesOrderRiskScorer.valueScore and orderValue in SalesOrderRiskScorerTest (R-11, part 2): 100, 100.0 and 100.00 score the same; 1.0 + 99.00 scores the same as 100; 99.99 and 100.00 score differently",
+      "rationale": "BigDecimal.equals is scale-sensitive (SalesOrderTest T-25). A wrong implementation only shows in the boundary comparison, a helper-level detail.",
+      "traces_to": ["AC-6", "risk: lineAmount is stored rather than derived and may be null or inconsistent with quantity times unit price"]
+    },
+    {
+      "id": "T-19",
+      "layer": "unit",
+      "title": "Value comes from lineAmount, not quantity times unit price",
+      "target": "SalesOrderRiskScorer.scoreOrder in SalesOrderRiskScorerTest (R-11, part 3): a line with 1 x 1 and lineAmount 60,000, and a line with 1,000 x 1,000 and lineAmount 1; the score follows lineAmount only",
+      "rationale": "The HLP names lineAmount as the single source of value and the model does not keep it in step with quantity and price. Needs hand-built inconsistent lines, easiest at helper level.",
+      "traces_to": ["AC-2", "risk: lineAmount is stored rather than derived and may be null or inconsistent with quantity times unit price"]
+    },
+    {
+      "id": "T-20",
+      "layer": "unit",
+      "title": "Constants are well formed and in one place",
+      "target": "SalesOrderRiskScorer.VALUE_BOUNDS, LINE_BOUNDS, MIN_SCORE, MAX_SCORE in SalesOrderRiskScorerTest (R-12): both lists have 9 entries, strictly ascending and immutable; MIN_SCORE is 1 and MAX_SCORE is 10; bounds count plus one equals MAX_SCORE",
+      "rationale": "T-14 and T-15 loop over these constants, so a malformed list would make them meaningless. This guards the guard and supports the single-place retuning mitigation.",
+      "traces_to": ["AC-6", "risk: Thresholds and combination rule are a business decision the issue does not specify, so scores may not match the author's expectation"]
+    },
+    {
+      "id": "T-21",
+      "layer": "unit",
+      "title": "Inputs are not mutated by the helpers",
+      "target": "orderValue and scoreOrder in SalesOrderRiskScorerTest (R-5, part 3): after repeated calls the order equals a pre-built deep copy, getLines() has the same size and the same instances, and results are repeatable",
+      "rationale": "T-8 proves no mutation through score. This proves the helpers do not mutate either and are deterministic, and a failure points straight at the helper.",
+      "traces_to": ["AC-9"]
+    }
+  ],
+  "gaps": [
+    "AC-6 documented: whether the Javadoc describes the rule and band table is a review item, since a test cannot judge documentation quality. The in-one-place half is covered by T-20 and the boundary half by T-14 and T-15.",
+    "Risk 'Scoring is a feature with no current caller, so it could drift from future needs': a product risk, not a behaviour. Its mitigation is a small API surface checked in code review. No test.",
+    "Business correctness of the band values and the max combination rule (open questions): tests pin the implemented bands and rule but cannot show they match the author's intent. Needs confirmation from the issue author before merge.",
+    "No REST or UI tests: the HLP excludes exposure through tools/warehouse-server and sales-orders-ui. Existing tests in those tools are not affected.",
+    "No performance or concurrency tests: the scorer is stateless, in-memory and called with small collections, and the issue sets no performance need."
+  ]
+}
